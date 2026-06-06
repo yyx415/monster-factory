@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>怪物工厂 · 初代</title>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div id="game-container">
+        <!-- 顶部状态栏 -->
+        <div id="top-bar">
+            <span id="gold-display">💰 0</span>
+            <span id="level-display">🏭 Lv.1</span>
+            <button id="save-btn">💾</button>
+            <button id="save-slots-btn" title="存档管理">📂</button>
+            <button id="reset-btn" title="重置进度">🗑️</button>
+        </div>
+        <div id="save-slots-panel" style="display:none;"></div>
+
+        <!-- 开始界面 -->
+        <div id="start-screen">
+            <h1>⚙️ 怪物工厂</h1>
+            <p class="subtitle">初代</p>
+            <button id="new-game-btn">🆕 开始新游戏</button>
+            <button id="continue-btn" style="display:none;">▶️ 继续游戏</button>
+        </div>
+
+        <!-- 主游戏界面 -->
+        <div id="main-game" style="display:none;">
+            <!-- 标签切换 -->
+            <div id="tab-bar">
+                <button class="tab-btn active" data-tab="lab">🧪 实验室</button>
+                <button class="tab-btn" data-tab="team">⚔️ 队伍</button>
+                <button class="tab-btn" data-tab="adventure">🗺️ 冒险</button>
+                <button class="tab-btn" data-tab="endless">♾️ 无尽</button>
+                <button class="tab-btn" data-tab="free">🔬 自由</button>
+                <button class="tab-btn" data-tab="guide">📖 合成树</button>
+                <button class="tab-btn" data-tab="bestiary">📋 怪物</button>
+            </div>
+
+            <!-- 实验室面板（购买+合成） -->
+            <div id="panel-lab" class="panel active">
+                <div class="section">
+                    <h2>🛒 商店</h2>
+                    <div id="shop-area">
+                        <div class="shop-card" data-template="mech_1">
+                            <div class="card-emoji">🔧</div>
+                            <div class="card-name">机械</div>
+                            <div class="card-info">远程 · 暴击20%</div>
+                            <button class="buy-btn">10💰</button>
+                        </div>
+                        <div class="shop-card" data-template="plant_1">
+                            <div class="card-emoji">🌱</div>
+                            <div class="card-name">植物</div>
+                            <div class="card-info">近战 · 回血</div>
+                            <button class="buy-btn">10💰</button>
+                        </div>
+                    </div>
+                </div>
+                <div class="section">
+                    <h2>🧬 合成 (拖拽怪物到这里)</h2>
+                    <div id="synthesis-slot-a" class="synth-slot">拖入怪物A</div>
+                    <span class="synth-plus">+</span>
+                    <div id="synthesis-slot-b" class="synth-slot">拖入怪物B</div>
+                    <button id="synthesize-btn" disabled>合成 (费用待算)</button>
+                    <div id="synth-preview"></div>
+                    <div id="synth-result"></div>
+                </div>
+                <div class="section">
+                    <h2>📦 怪物仓库 (<span id="monster-count">0</span>)</h2>
+                    <div id="monster-list" class="scroll-list"></div>
+                </div>
+            </div>
+
+            <!-- 队伍面板 -->
+            <div id="panel-team" class="panel">
+                <h2>⚔️ 出战队伍 (拖入怪物布阵)</h2>
+                <div id="team-slots">
+                    <div class="team-slot" data-slot="0">空</div>
+                    <div class="team-slot" data-slot="1">空</div>
+                    <div class="team-slot" data-slot="2">空</div>
+                    <div class="team-slot" data-slot="3">空</div>
+                </div>
+		<div class="section" style="margin-top:16px;">
+        		<h2>📦 可出战怪物</h2>
+        		<div id="team-monster-list" class="scroll-list"></div>
+    		</div>
+                <p style="color:#888;font-size:0.8rem;">点击仓库怪物可查看详情，拖到槽位即可上阵</p>
+            </div>
+
+
+            <!-- 冒险模式面板 -->
+            <div id="panel-adventure" class="panel">
+                <h2>🗺️ 冒险模式</h2>
+                <div id="adventure-info">
+                    <p>当前关卡: <strong id="adv-level">1</strong></p>
+                    <p>通关奖励: <strong id="adv-reward">100</strong>💰</p>
+                </div>
+                <div id="adventure-enemy-preview">
+                    <h3>敌方阵容</h3>
+                    <div id="enemy-lineup"></div>
+                </div>
+                <button id="adventure-fight-btn">⚔️ 出击</button>
+                <div id="adventure-result"></div>
+            </div>
+
+            <!-- 自由模式面板 -->
+            <div id="panel-free" class="panel">
+                <h2>🔬 自由模式（测试场）</h2>
+                <p style="color:#888;font-size:0.8rem;margin-bottom:12px;">从下方模板中点击选择怪物，可重复选取，每方最多4只</p>
+
+                <div class="free-battlefield">
+                    <!-- 我方阵容 -->
+                    <div class="free-side">
+                        <h3 class="free-side-title ally">🟢 我方阵容</h3>
+                        <div id="free-ally-slots" class="free-slots">
+                            <div class="free-slot" data-side="ally" data-index="0">空</div>
+                            <div class="free-slot" data-side="ally" data-index="1">空</div>
+                            <div class="free-slot" data-side="ally" data-index="2">空</div>
+                            <div class="free-slot" data-side="ally" data-index="3">空</div>
+                        </div>
+                    </div>
+
+                    <!-- VS -->
+                    <div class="free-vs">⚔️VS</div>
+
+                    <!-- 敌方阵容 -->
+                    <div class="free-side">
+                        <h3 class="free-side-title enemy">🔴 敌方阵容</h3>
+                        <div id="free-enemy-slots" class="free-slots">
+                            <div class="free-slot" data-side="enemy" data-index="0">空</div>
+                            <div class="free-slot" data-side="enemy" data-index="1">空</div>
+                            <div class="free-slot" data-side="enemy" data-index="2">空</div>
+                            <div class="free-slot" data-side="enemy" data-index="3">空</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 模板选择器 -->
+                <div class="section" style="margin-top:12px;">
+                    <h2>📋 怪物模板（点击选择）</h2>
+                    <div id="free-template-picker" class="free-template-grid"></div>
+                </div>
+
+                <!-- 操作区 -->
+                <div style="text-align:center;margin-top:16px;">
+                    <button id="free-fight-btn" style="background:#ff6f00;border:none;color:#000;padding:10px 32px;border-radius:6px;cursor:pointer;font-weight:bold;font-size:1rem;">⚔️ 开始战斗</button>
+                    <button id="free-clear-btn" style="background:#555;border:none;color:#fff;padding:10px 20px;border-radius:6px;cursor:pointer;margin-left:8px;">🔄 清空</button>
+                </div>
+                <div id="free-result" style="text-align:center;margin-top:8px;color:#ffd700;min-height:20px;"></div>
+            </div>
+
+            <!-- 怪物图鉴面板 -->
+            <div id="panel-besiary" class="panel">
+                <h2>📋 怪物图鉴</h2>
+                <div id="bestiary-grid"></div>
+            </div>
+
+            <!-- 图鉴面板 -->
+            <div id="panel-guide" class="panel">
+                <h2>📖 合成公式</h2>
+                <div id="synth-tree"></div>
+            </div>
+
+            <!-- 无尽模式面板 -->
+            <div id="panel-endless" class="panel">
+                <h2>♾️ 无尽模式</h2>
+                <p>当前最高波次: <strong id="endless-best">0</strong></p>
+                <button id="endless-start-btn">开始挑战</button>
+                <div id="endless-battle-area" style="display:none;">
+                    <p>当前波次: <strong id="endless-wave">1</strong></p>
+                    <div id="endless-enemy-lineup"></div>
+                    <div id="endless-battle-log"></div>
+                    <button id="endless-next-btn">下一波</button>
+                    <button id="endless-quit-btn">退出 (领取奖励)</button>
+                </div>
+                <div id="endless-result"></div>
+            </div>
+        </div>
+
+        <!-- 战斗弹窗 -->
+        <div id="battle-modal" style="display:none;">
+            <div id="battle-modal-content">
+                <h2>⚡ 战斗进行中</h2>
+                <div id="battle-field">
+                    <div id="battle-allies"></div>
+                    <div class="battle-divider">⚡VS⚡</div>
+                    <div id="battle-enemies"></div>
+                </div>
+                <div id="battle-log"></div>
+                <button id="battle-close-btn">关闭</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/config.js?v=6"></script>
+    <script src="js/levels.js?v=6"></script>
+    <script src="js/state.js?v=6"></script>
+    <script src="js/ui.js?v=6"></script>
+    <script src="js/synthesis.js?v=6"></script>
+    <script src="js/canvas-battle.js?v=6"></script>
+    <script src="js/main.js?v=6"></script>
+</body>
+</html>

@@ -1,0 +1,589 @@
+* { margin: 0; padding: 0; box-sizing: border-box; }
+
+body {
+    background: #1a1a1a;
+    color: #e0e0e0;
+    font-family: 'Courier New', monospace;
+    display: flex;
+    justify-content: center;
+    min-height: 100vh;
+}
+
+#game-container {
+    width: 100%;
+    max-width: 640px;
+    background: #2a2a2a;
+    min-height: 100vh;
+    border-left: 2px solid #555;
+    border-right: 2px solid #555;
+}
+
+/* 顶部栏 */
+#top-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 8px 16px;
+    background: #333;
+    border-bottom: 2px solid #ff6f00;
+    font-size: 1rem;
+}
+#top-bar button {
+    background: #555;
+    border: none;
+    color: white;
+    padding: 4px 12px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.9rem;
+}
+
+/* 开始界面 */
+#start-screen {
+    text-align: center;
+    padding: 60px 20px;
+}
+#start-screen h1 { font-size: 2.2rem; color: #ff6f00; }
+#start-screen .subtitle { color: #999; margin-bottom: 30px; }
+#start-screen button {
+    display: block;
+    width: 200px;
+    margin: 10px auto;
+    padding: 12px;
+    font-size: 1.1rem;
+    border: 2px solid #ff6f00;
+    background: #3a3a3a;
+    color: #fff;
+    border-radius: 6px;
+    cursor: pointer;
+}
+#start-screen button:hover { background: #ff6f00; color: #000; }
+
+/* 标签栏 */
+#tab-bar {
+    display: flex;
+    background: #333;
+    border-bottom: 1px solid #555;
+}
+.tab-btn {
+    flex: 1;
+    padding: 10px 0;
+    background: transparent;
+    border: none;
+    color: #aaa;
+    cursor: pointer;
+    font-size: 0.85rem;
+    border-bottom: 2px solid transparent;
+}
+.tab-btn.active { color: #ff6f00; border-bottom-color: #ff6f00; }
+
+/* 面板 */
+.panel { display: none; padding: 12px; }
+.panel.active { display: block; }
+.section { margin-bottom: 16px; }
+.section h2 {
+    font-size: 1rem;
+    color: #ff6f00;
+    border-bottom: 1px solid #444;
+    padding-bottom: 4px;
+    margin-bottom: 8px;
+}
+
+/* 商店 */
+#shop-area { display: flex; gap: 12px; }
+.shop-card {
+    flex: 1;
+    background: #3a3a3a;
+    border: 2px solid #555;
+    border-radius: 8px;
+    padding: 12px;
+    text-align: center;
+}
+.shop-card .card-emoji { font-size: 2.5rem; }
+.shop-card .card-name { font-weight: bold; font-size: 1.1rem; }
+.shop-card .card-info { font-size: 0.75rem; color: #aaa; margin: 4px 0; }
+.shop-card .buy-btn {
+    background: #ff6f00;
+    border: none;
+    color: #000;
+    padding: 6px 16px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-weight: bold;
+    margin-top: 6px;
+}
+
+/* 合成区 */
+#synthesis-slot-a, #synthesis-slot-b {
+    display: inline-block;
+    width: 100px;
+    height: 80px;
+    border: 2px dashed #666;
+    border-radius: 8px;
+    text-align: center;
+    padding: 10px;
+    vertical-align: middle;
+    color: #888;
+    font-size: 0.8rem;
+}
+.synth-plus { margin: 0 8px; font-size: 1.5rem; vertical-align: middle; }
+#synthesize-btn {
+    display: block;
+    margin-top: 8px;
+    background: #ff6f00;
+    border: none;
+    color: #000;
+    padding: 8px 20px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-weight: bold;
+}
+#synthesize-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+#synth-preview { margin-top: 8px; font-size: 0.85rem; }
+#synth-preview .preview-card {
+    display: inline-flex; align-items: center; gap: 8px;
+    background: #3a3020; border: 2px solid #ff6f00; border-radius: 8px;
+    padding: 8px 12px;
+}
+#synth-preview .preview-emoji { font-size: 1.6rem; }
+#synth-preview .preview-name { font-weight: bold; }
+#synth-preview .preview-level { font-size: 0.7rem; color: #aaa; }
+#synth-result { margin-top: 8px; color: #ff6f00; }
+
+/* 怪物列表 */
+#monster-list, #team-monster-list { display: flex; flex-wrap: wrap; gap: 8px; }
+.scroll-list {
+    max-height: 320px;
+    overflow-y: auto;
+    padding-right: 4px;
+}
+/* 滚动条样式 */
+.scroll-list::-webkit-scrollbar { width: 6px; }
+.scroll-list::-webkit-scrollbar-track { background: #222; border-radius: 3px; }
+.scroll-list::-webkit-scrollbar-thumb { background: #555; border-radius: 3px; }
+.monster-card {
+    background: #3a3a3a;
+    border: 2px solid #555;
+    border-radius: 8px;
+    padding: 8px;
+    width: 100px;
+    text-align: center;
+    cursor: pointer;
+    user-select: none;
+    transition: border-color 0.2s;
+}
+.monster-card:hover { border-color: #ff6f00; }
+.monster-card.selected { border-color: #ffd700; background: #4a4a2a; box-shadow: 0 0 8px rgba(255,215,0,0.4); }
+.monster-card .emoji { font-size: 1.8rem; }
+.monster-card .name { font-weight: bold; font-size: 0.85rem; }
+.monster-card .info { font-size: 0.65rem; color: #aaa; }
+.monster-card.dragging { opacity: 0.5; }
+
+/* 队伍槽位 */
+#team-slots { display: flex; gap: 10px; justify-content: center; }
+.team-slot {
+    width: 100px;
+    height: 100px;
+    border: 2px dashed #666;
+    border-radius: 8px;
+    text-align: center;
+    padding: 10px;
+    color: #888;
+    font-size: 0.8rem;
+    transition: border-color 0.2s;
+}
+.team-slot:hover { border-color: #ff6f00; }
+.team-slot.filled { border-style: solid; border-color: #ff6f00; color: #fff; }
+.team-slot .slot-emoji { font-size: 1.8rem; }
+.team-slot .slot-name { font-size: 0.7rem; }
+
+/* 战斗弹窗 */
+#battle-modal {
+    position: fixed;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    background: rgba(0,0,0,0.85);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 100;
+}
+#battle-modal-content {
+    background: #2a2a2a;
+    border: 3px solid #ff6f00;
+    border-radius: 12px;
+    padding: 20px;
+    width: 90%;
+    max-width: 500px;
+    max-height: 80vh;
+    overflow-y: auto;
+}
+#battle-field {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin: 12px 0;
+    gap: 16px;
+}
+#battle-allies, #battle-enemies { flex: 1; }
+.battle-divider { font-size: 1.5rem; color: #ff6f00; }
+.battle-unit {
+    background: #3a3a3a;
+    border: 1px solid #555;
+    border-radius: 6px;
+    padding: 6px;
+    margin: 4px 0;
+    text-align: center;
+    font-size: 0.75rem;
+}
+.battle-unit .hp-bar {
+    height: 6px;
+    background: #555;
+    border-radius: 3px;
+    margin-top: 2px;
+}
+.battle-unit .hp-bar-fill {
+    height: 100%;
+    background: #4caf50;
+    border-radius: 3px;
+    transition: width 0.3s;
+}
+#battle-log {
+    background: #111;
+    border-radius: 6px;
+    padding: 8px;
+    max-height: 200px;
+    overflow-y: auto;
+    font-size: 0.7rem;
+    color: #ccc;
+    margin: 8px 0;
+}
+#battle-close-btn {
+    display: block;
+    width: 100%;
+    background: #ff6f00;
+    border: none;
+    color: #000;
+    padding: 10px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: bold;
+}
+
+/* 怪物详情弹窗 */
+#detail-modal {
+    position: fixed;
+    top: 0; left: 0;
+    width: 100%; height: 100%;
+    background: rgba(0,0,0,0.85);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    z-index: 100;
+}
+#detail-modal-content {
+    background: #2a2a2a;
+    border: 3px solid #ffb300;
+    border-radius: 12px;
+    padding: 20px;
+    width: 90%;
+    max-width: 400px;
+}
+#detail-title {
+    margin: 0 0 12px 0;
+    color: #fff;
+    font-size: 1.1rem;
+}
+#detail-body p {
+    color: #ccc;
+    margin: 4px 0;
+    font-size: 0.85rem;
+}
+#detail-close-btn {
+    display: block;
+    width: 100%;
+    background: #ffb300;
+    border: none;
+    color: #000;
+    padding: 10px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: bold;
+    margin-top: 12px;
+}
+
+/* 冒险/无尽 */
+#adventure-fight-btn, #endless-start-btn, #endless-next-btn, #endless-quit-btn {
+    background: #ff6f00;
+    border: none;
+    color: #000;
+    padding: 10px 20px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: bold;
+    margin: 4px;
+}
+#endless-battle-log {
+    background: #111;
+    border-radius: 6px;
+    padding: 8px;
+    max-height: 150px;
+    overflow-y: auto;
+    font-size: 0.7rem;
+    color: #ccc;
+    margin: 8px 0;
+}
+#enemy-lineup, #endless-enemy-lineup {
+    display: flex;
+    gap: 6px;
+    flex-wrap: wrap;
+    margin: 8px 0;
+}
+.enemy-preview-card {
+    background: #4a2020;
+    border: 1px solid #ff4444;
+    border-radius: 6px;
+    padding: 6px;
+    text-align: center;
+    font-size: 0.75rem;
+    width: 80px;
+}
+
+/* 重置按钮 */
+#reset-btn {
+    background: #5a3030;
+    border: 1px solid #884444;
+    color: #ff8888;
+    padding: 4px 8px;
+    border-radius: 4px;
+    cursor: pointer;
+    font-size: 0.8rem;
+}
+#reset-btn:hover { background: #884444; }
+
+/* 存档槽面板 */
+#save-slots-panel {
+    background: #2a2a2a; border: 2px solid #ff6f00; border-radius: 8px;
+    padding: 12px; margin: 8px 12px;
+}
+#save-slots-panel h3 { color: #ff6f00; font-size: 0.9rem; margin-bottom: 8px; }
+.save-slot {
+    display: flex; align-items: center; justify-content: space-between;
+    background: #333; border: 1px solid #555; border-radius: 6px;
+    padding: 8px 10px; margin-bottom: 6px; gap: 8px; flex-wrap: wrap;
+}
+.save-slot .slot-info { flex: 1; min-width: 140px; }
+.save-slot .slot-date { font-size: 0.7rem; color: #888; }
+.save-slot .slot-detail { font-size: 0.75rem; color: #ccc; }
+.save-slot .slot-empty { color: #666; font-size: 0.8rem; text-align: center; padding: 8px; }
+.save-slot button {
+    padding: 4px 10px; border-radius: 4px; border: 1px solid #666;
+    cursor: pointer; font-size: 0.7rem; color: #eee; min-height: 28px;
+}
+.save-slot .btn-save { background: #2e5a2e; }
+.save-slot .btn-load { background: #2a3a5a; }
+.save-slot .btn-del { background: #5a2a2a; }
+
+/* 小按钮 */
+.small-btn {
+    background: #444;
+    border: 1px solid #666;
+    color: #aaa;
+    padding: 2px 8px;
+    border-radius: 3px;
+    cursor: pointer;
+    font-size: 0.7rem;
+    margin-left: 4px;
+}
+.small-btn:hover { color: #fff; border-color: #888; }
+
+/* 合成树 */
+#synth-tree {
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    padding: 8px 0;
+    overflow-x: auto;
+}
+.tree-level {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    min-width: 90px;
+}
+.tree-level-label {
+    text-align: center;
+    font-size: 0.7rem;
+    color: #888;
+    padding-bottom: 4px;
+    border-bottom: 1px solid #444;
+}
+.tree-node {
+    background: #333;
+    border: 2px solid #555;
+    border-radius: 6px;
+    padding: 6px 8px;
+    text-align: center;
+    font-size: 0.7rem;
+    cursor: default;
+    transition: border-color 0.2s;
+    position: relative;
+}
+.tree-node:hover { border-color: #ff6f00; }
+.tree-node .node-emoji { font-size: 1.4rem; }
+.tree-node .node-name { font-size: 0.75rem; font-weight: bold; }
+.tree-node .node-parents { font-size: 0.6rem; color: #888; margin-top: 2px; }
+.tree-node .node-cost { font-size: 0.6rem; color: #ffd700; }
+.tree-arrow {
+    display: flex;
+    align-items: center;
+    color: #ff6f00;
+    font-size: 1.2rem;
+    min-width: 20px;
+    justify-content: center;
+}
+
+/* 怪物图鉴 */
+#bestiary-grid {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+.bestiary-card {
+    background: #333;
+    border: 2px solid #555;
+    border-radius: 8px;
+    padding: 10px 12px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+.bestiary-card .b-emoji { font-size: 2rem; min-width: 36px; text-align: center; }
+.bestiary-card .b-info { flex: 1; }
+.bestiary-card .b-name {
+    font-weight: bold; font-size: 0.9rem; margin-bottom: 2px;
+}
+.bestiary-card .b-stats {
+    font-size: 0.65rem; color: #aaa; line-height: 1.5;
+}
+.bestiary-card .b-stats span { margin-right: 8px; white-space: nowrap; }
+.bestiary-card .b-traits {
+    font-size: 0.6rem; color: #ff9800; margin-top: 2px;
+}
+.bestiary-card .b-recipe { font-size: 0.6rem; color: #ffd700; margin: 1px 0; }
+.bestiary-card .b-range {
+    font-size: 0.6rem; padding: 2px 6px; border-radius: 3px;
+    white-space: nowrap;
+}
+
+/* ========== 自由模式 ========== */
+
+/* 双栏战场布局 */
+.free-battlefield {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 8px;
+}
+.free-side {
+    flex: 1;
+    background: #2a2a2a;
+    border-radius: 8px;
+    padding: 10px;
+}
+.free-side-title {
+    font-size: 0.85rem;
+    margin-bottom: 8px;
+    text-align: center;
+    padding-bottom: 6px;
+    border-bottom: 1px solid #444;
+    transition: all 0.3s;
+}
+.free-side-title.ally { color: #4caf50; }
+.free-side-title.enemy { color: #f44336; }
+.free-side-title.active-side {
+    text-shadow: 0 0 8px currentColor;
+    border-bottom-color: currentColor;
+}
+.free-vs {
+    font-size: 1.2rem;
+    color: #ff6f00;
+    font-weight: bold;
+    white-space: nowrap;
+}
+
+/* 双方槽位 */
+.free-slots {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    justify-content: center;
+}
+.free-slot {
+    width: 80px;
+    height: 70px;
+    border: 2px dashed #555;
+    border-radius: 8px;
+    text-align: center;
+    padding: 6px;
+    color: #666;
+    font-size: 0.7rem;
+    cursor: pointer;
+    transition: border-color 0.2s;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+}
+.free-slot:hover { border-color: #ff6f00; }
+.free-slot.filled {
+    border-style: solid;
+    border-color: #ff6f00;
+    color: #fff;
+}
+.free-slot .free-slot-emoji { font-size: 1.5rem; }
+.free-slot .free-slot-name { font-size: 0.6rem; }
+
+/* 模板选择网格 */
+.free-template-grid {
+    max-height: 340px;
+    overflow-y: auto;
+    padding-right: 4px;
+}
+.free-template-grid::-webkit-scrollbar { width: 6px; }
+.free-template-grid::-webkit-scrollbar-track { background: #222; border-radius: 3px; }
+.free-template-grid::-webkit-scrollbar-thumb { background: #555; border-radius: 3px; }
+.free-tpl-group {
+    margin-bottom: 8px;
+}
+.free-tpl-lv {
+    font-size: 0.7rem;
+    color: #888;
+    margin-bottom: 4px;
+    padding-left: 2px;
+}
+.free-tpl-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+}
+.free-tpl-card {
+    background: #3a3a3a;
+    border: 2px solid #555;
+    border-radius: 8px;
+    padding: 6px 8px;
+    text-align: center;
+    cursor: pointer;
+    transition: border-color 0.15s, transform 0.15s;
+    width: 84px;
+    user-select: none;
+}
+.free-tpl-card:hover {
+    border-color: #ffd700;
+    transform: scale(1.05);
+    background: #4a4a2a;
+}
+.free-tpl-emoji { font-size: 1.5rem; }
+.free-tpl-name { font-size: 0.72rem; font-weight: bold; }
+.free-tpl-stats { font-size: 0.6rem; color: #888; margin-top: 2px; }
