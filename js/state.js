@@ -23,6 +23,7 @@ window.GameState = (function() {
             level: tpl.level,
             color: tpl.color,
             emoji: tpl.emoji,
+            image: tpl.image,
             range: tpl.range,
             stats: { ...tpl.baseStats, maxHealth: tpl.baseStats.health },
             critRate: tpl.critRate,

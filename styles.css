@@ -100,6 +100,7 @@ body {
     text-align: center;
 }
 .shop-card .card-emoji { font-size: 2.5rem; }
+.shop-card .shop-card-img { width: 72px; height: 72px; border-radius: 50%; object-fit: cover; display: block; margin: 0 auto 6px; }
 .shop-card .card-name { font-weight: bold; font-size: 1.1rem; }
 .shop-card .card-info { font-size: 0.75rem; color: #aaa; margin: 4px 0; }
 .shop-card .buy-btn {
@@ -175,6 +176,8 @@ body {
 .monster-card:hover { border-color: #ff6f00; }
 .monster-card.selected { border-color: #ffd700; background: #4a4a2a; box-shadow: 0 0 8px rgba(255,215,0,0.4); }
 .monster-card .emoji { font-size: 1.8rem; }
+.monster-card .monster-card-img { width: 68px; height: 68px; margin: 0 auto 4px; }
+.monster-card .monster-card-img img { display: block; }
 .monster-card .name { font-weight: bold; font-size: 0.85rem; }
 .monster-card .info { font-size: 0.65rem; color: #aaa; }
 .monster-card.dragging { opacity: 0.5; }
@@ -195,6 +198,7 @@ body {
 .team-slot:hover { border-color: #ff6f00; }
 .team-slot.filled { border-style: solid; border-color: #ff6f00; color: #fff; }
 .team-slot .slot-emoji { font-size: 1.8rem; }
+.team-slot .monster-img { vertical-align: middle; }
 .team-slot .slot-name { font-size: 0.7rem; }
 
 /* 战斗弹窗 */

@@ -9,6 +9,9 @@ window.CanvasBattle = (function() {
     const HP_BAR_W = 70;         // 血条宽度
     const HP_BAR_H = 8;          // 血条高度
 
+    // 图片缓存：key=路径, value=Image对象
+    const unitImages = new Map();
+
     // 品质颜色映射
     const QUALITY_COLORS = { green: '#4caf50', blue: '#2196f3', purple: '#9c27b0', gold: '#ffd700' };
     const KNOCKBACK_LIGHT = 30;  // 轻微击退
@@ -132,6 +135,7 @@ window.CanvasBattle = (function() {
             this.uniqueId = data.uniqueId;
             this.name = data.name;
             this.emoji = data.emoji;
+            this.image = data.image || null;  // 怪物贴图路径
             this.range = data.range;
             this.health = data.health;
             this.maxHealth = data.maxHealth;
@@ -564,12 +568,23 @@ window.CanvasBattle = (function() {
             ctx.ellipse(0, 24, 24, 6, 0, 0, Math.PI * 2);
             ctx.fill();
 
-            // 怪物身体（emoji）— 重置fillStyle避免继承阴影色
-            ctx.fillStyle = '#fff';
-            ctx.font = '44px serif';
-            ctx.textAlign = 'center';
-            ctx.textBaseline = 'middle';
-            ctx.fillText(this.emoji, 0, 0);
+            // 怪物身体 — 优先贴图，降级用emoji
+            const img = unitImages.get(this.image);
+            if (img && img.complete && img.naturalWidth > 0) {
+                const imgSize = 52;
+                ctx.save();
+                ctx.beginPath();
+                ctx.arc(0, 0, 26, 0, Math.PI * 2);
+                ctx.clip();
+                ctx.drawImage(img, -imgSize/2, -imgSize/2, imgSize, imgSize);
+                ctx.restore();
+            } else {
+                ctx.fillStyle = '#fff';
+                ctx.font = '44px serif';
+                ctx.textAlign = 'center';
+                ctx.textBaseline = 'middle';
+                ctx.fillText(this.emoji, 0, 0);
+            }
 
             // 死亡特效
             if (!this.alive) {
@@ -807,7 +822,7 @@ window.CanvasBattle = (function() {
             const t = validAllies.length <= 1 ? 0.5 : i / (validAllies.length - 1);
             const x = canvas.width * 0.06 + t * canvas.width * 0.20;
             const unit = new BattleUnit(
-                { uniqueId: m.uniqueId || 'a_' + i, name: m.name, emoji: m.emoji,
+                { uniqueId: m.uniqueId || 'a_' + i, name: m.name, emoji: m.emoji, image: m.image,
                   range: m.range, health: m.health || m.stats?.health || 100,
                   maxHealth: m.maxHealth || m.stats?.maxHealth || m.stats?.health || 100,
                   attack: m.attack || m.stats?.attack || 10,
@@ -825,7 +840,7 @@ window.CanvasBattle = (function() {
             const t = sortedEnemies.length <= 1 ? 0.5 : i / (sortedEnemies.length - 1);
             const x = canvas.width * 0.74 + t * canvas.width * 0.20;
             const unit = new BattleUnit(
-                { uniqueId: m.uniqueId || 'e_' + i, name: m.name, emoji: m.emoji,
+                { uniqueId: m.uniqueId || 'e_' + i, name: m.name, emoji: m.emoji, image: m.image,
                   range: m.range, health: m.health || m.stats?.health || 100,
                   maxHealth: m.maxHealth || m.stats?.maxHealth || m.stats?.health || 100,
                   attack: m.attack || m.stats?.attack || 10,
@@ -839,6 +854,16 @@ window.CanvasBattle = (function() {
         });
 
         const allUnits = [...allies, ...enemiesList];
+
+        // 预加载怪物贴图
+        allUnits.forEach(u => {
+            if (u.image && !unitImages.has(u.image)) {
+                const img = new Image();
+                img.src = u.image;
+                unitImages.set(u.image, img);
+            }
+        });
+
         const damageNumbers = [];
         const projectiles = [];
         const battleEvents = [];
@@ -1369,7 +1394,7 @@ window.CanvasBattle = (function() {
                             playerWin: battleState === 'victory',
                             survivingAllies: allies.filter(u => u.alive).map(u => ({
                                 uniqueId: u.uniqueId,
-                                name: u.name, emoji: u.emoji, range: u.range,
+                                name: u.name, emoji: u.emoji, image: u.image, range: u.range,
                                 level: u.level || 1, color: u.color || 'green',
                                 health: Math.floor(u.health), maxHealth: u.maxHealth,
                                 attack: u.attack, speed: u.speed,

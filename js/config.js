@@ -16,14 +16,14 @@ window.GameConfig = (function() {
         // ===== 1级 绿色 =====
         mech_1: {
             id: 'mech_1', name: '机械', level: 1, color: 'green',
-            emoji: '🔧', range: RANGE.RANGED,
+            emoji: '🔧', image: 'images/mech_1.png', range: RANGE.RANGED,
             baseStats: { health: 180, attack: 18, speed: 1.3, regen: 0 },
             critRate: 0.2, critDmg: 2.0,
             traits: ['暴击20%', '轻微击退']
         },
         plant_1: {
             id: 'plant_1', name: '植物', level: 1, color: 'green',
-            emoji: '🌱', range: RANGE.MELEE,
+            emoji: '🌱', image: 'images/plant_1.png', range: RANGE.MELEE,
             baseStats: { health: 240, attack: 12, speed: 1.1, regen: 3 },
             critRate: 0, critDmg: 2.0,
             traits: ['每秒回血3', '轻微击退']
@@ -32,21 +32,21 @@ window.GameConfig = (function() {
         // ===== 2级 蓝色 =====
         wheel_2: {
             id: 'wheel_2', name: '滑轮', level: 2, color: 'blue',
-            emoji: '⚙️', range: RANGE.RANGED,
+            emoji: '⚙️', image: 'images/wheel_2.png', range: RANGE.RANGED,
             baseStats: { health: 320, attack: 36, speed: 1.2, regen: 0 },
             critRate: 0.4, critDmg: 2.0,
             traits: ['暴击40%', '轻微击退']
         },
         elf_2: {
             id: 'elf_2', name: '精灵', level: 2, color: 'blue',
-            emoji: '🧚', range: RANGE.MELEE,
+            emoji: '🧚', image: 'images/elf_2.png', range: RANGE.MELEE,
             baseStats: { health: 440, attack: 24, speed: 1.0, regen: 8 },
             critRate: 0, critDmg: 2.0,
             traits: ['每秒回血8', '轻微击退']
         },
         boom_2: {
             id: 'boom_2', name: '砰砰', level: 2, color: 'blue',
-            emoji: '💥', range: RANGE.MELEE,
+            emoji: '💥', image: 'images/boom_2.png', range: RANGE.MELEE,
             baseStats: { health: 240, attack: 42, speed: 0.9, regen: 0 },
             critRate: 0.5, critDmg: 2.0,
             traits: ['暴击50%', '血量少伤害高', '轻微击退']
@@ -55,7 +55,7 @@ window.GameConfig = (function() {
         // ===== 3级 橙色 =====
         tree_3: {
             id: 'tree_3', name: '神树', level: 3, color: 'orange',
-            emoji: '🌳', range: RANGE.HEAL,
+            emoji: '🌳', image: 'images/tree_3.png', range: RANGE.HEAL,
             baseStats: { health: 560, attack: 40, speed: 1.5, regen: 0 },
             critRate: 0.2, critDmg: 2.0,
             traits: ['治疗全体', '治疗暴击20%'],
@@ -63,7 +63,7 @@ window.GameConfig = (function() {
         },
         venom_3: {
             id: 'venom_3', name: '毒液', level: 3, color: 'orange',
-            emoji: '🐍', range: RANGE.MID,
+            emoji: '🐍', image: 'images/venom_3.png', range: RANGE.MID,
             baseStats: { health: 600, attack: 50, speed: 2.6, regen: 12 },
             critRate: 0, critDmg: 2.0,
             traits: ['穿透', '击退', '每秒回血12'],
@@ -72,21 +72,21 @@ window.GameConfig = (function() {
         },
         flail_3: {
             id: 'flail_3', name: '链锤', level: 3, color: 'orange',
-            emoji: '🔗', range: RANGE.MELEE,
+            emoji: '🔗', image: 'images/flail_3.png', range: RANGE.MELEE,
             baseStats: { health: 800, attack: 45, speed: 0.9, regen: 18 },
             critRate: 0, critDmg: 2.0,
             traits: ['每秒回血18', '击退']
         },
         drill_3: {
             id: 'drill_3', name: '钻枪', level: 3, color: 'orange',
-            emoji: '🔩', range: RANGE.MELEE,
+            emoji: '🔩', image: 'images/drill_3.png', range: RANGE.MELEE,
             baseStats: { health: 440, attack: 70, speed: 0.8, regen: 0 },
             critRate: 0.7, critDmg: 2.0,
             traits: ['暴击70%', '血量少伤害高', '轻微击退']
         },
         gunfire_3: {
             id: 'gunfire_3', name: '枪火', level: 3, color: 'orange',
-            emoji: '🔫', range: RANGE.RANGED,
+            emoji: '🔫', image: 'images/gunfire_3.png', range: RANGE.RANGED,
             baseStats: { health: 560, attack: 10, speed: 1.1, regen: 0 },
             critRate: 0, critDmg: 2.0,
             traits: ['穿透攻击', '3连发'],
@@ -94,7 +94,7 @@ window.GameConfig = (function() {
         },
         ironfist_3: {
             id: 'ironfist_3', name: '铁拳', level: 3, color: 'orange',
-            emoji: '🤖', range: RANGE.MELEE,
+            emoji: '🤖', image: 'images/ironfist_3.png', range: RANGE.MELEE,
             baseStats: { health: 700, attack: 40, speed: 0.9, regen: 8 },
             critRate: 0, critDmg: 2.0,
             traits: ['每秒回血8', '大幅击退']
@@ -103,7 +103,7 @@ window.GameConfig = (function() {
         // ===== 4级 红色 =====
         magma_4: {
             id: 'magma_4', name: '岩浆兽', level: 4, color: 'red',
-            emoji: '🔥', range: RANGE.MELEE,
+            emoji: '🔥', image: 'images/magma_4.png', range: RANGE.MELEE,
             baseStats: { health: 750, attack: 60, speed: 1.0, regen: 20 },
             critRate: 0, critDmg: 2.0,
             traits: ['击退'],
@@ -112,7 +112,7 @@ window.GameConfig = (function() {
         },
         vampire_4: {
             id: 'vampire_4', name: '吸血鬼', level: 4, color: 'red',
-            emoji: '🦇', range: RANGE.MID,
+            emoji: '🦇', image: 'images/vampire_4.png', range: RANGE.MID,
             baseStats: { health: 500, attack: 48, speed: 1.1, regen: 0 },
             critRate: 0.2, critDmg: 2.0,
             traits: ['暴击20%'],
@@ -120,7 +120,7 @@ window.GameConfig = (function() {
         },
         poison_4: {
             id: 'poison_4', name: '毒之花', level: 4, color: 'red',
-            emoji: '🌺', range: RANGE.RANGED,
+            emoji: '🌺', image: 'images/poison_4.png', range: RANGE.RANGED,
             baseStats: { health: 420, attack: 35, speed: 1.0, regen: 5 },
             critRate: 0, critDmg: 2.0,
             traits: ['每秒回血5'],
@@ -128,7 +128,7 @@ window.GameConfig = (function() {
         },
         berserk_4: {
             id: 'berserk_4', name: '狂战士', level: 4, color: 'red',
-            emoji: '💢', range: RANGE.MELEE,
+            emoji: '💢', image: 'images/berserk_4.png', range: RANGE.MELEE,
             baseStats: { health: 550, attack: 45, speed: 0.9, regen: 5 },
             critRate: 0, critDmg: 2.0,
             traits: ['每秒回血5', '轻微击退'],
@@ -136,7 +136,7 @@ window.GameConfig = (function() {
         },
         guardian_4: {
             id: 'guardian_4', name: '守护者', level: 4, color: 'red',
-            emoji: '🛡️', range: RANGE.MELEE,
+            emoji: '🛡️', image: 'images/guardian_4.png', range: RANGE.MELEE,
             baseStats: { health: 950, attack: 38, speed: 1.3, regen: 15 },
             critRate: 0, critDmg: 2.0,
             traits: ['每秒回血15', '大幅击退'],
@@ -146,7 +146,7 @@ window.GameConfig = (function() {
         // ===== 5级 金色 =====
         dragon_5: {
             id: 'dragon_5', name: '龙帝', level: 5, color: 'gold',
-            emoji: '🐲', range: RANGE.MELEE,
+            emoji: '🐲', image: 'images/dragon_5.png', range: RANGE.MELEE,
             baseStats: { health: 950, attack: 60, speed: 0.9, regen: 20 },
             critRate: 0.25, critDmg: 2.0,
             traits: ['暴击25%', '每秒回血20', '大幅击退'],
@@ -154,7 +154,7 @@ window.GameConfig = (function() {
         },
         phoenix_5: {
             id: 'phoenix_5', name: '凤凰神', level: 5, color: 'gold',
-            emoji: '🦅', range: RANGE.HEAL,
+            emoji: '🦅', image: 'images/phoenix_5.png', range: RANGE.HEAL,
             baseStats: { health: 700, attack: 55, speed: 1.1, regen: 15 },
             critRate: 0.3, critDmg: 2.0,
             traits: ['治疗全体', '治疗暴击30%', '每秒回血15'],
@@ -163,7 +163,7 @@ window.GameConfig = (function() {
         },
         timeassassin_5: {
             id: 'timeassassin_5', name: '时空刺客', level: 5, color: 'gold',
-            emoji: '⏰', range: RANGE.MELEE,
+            emoji: '⏰', image: 'images/timeassassin_5.png', range: RANGE.MELEE,
             baseStats: { health: 420, attack: 40, speed: 1.0, regen: 0 },
             critRate: 0.4, critDmg: 3.0,
             traits: ['暴击40%'],
@@ -171,7 +171,7 @@ window.GameConfig = (function() {
         },
         frostdragon_5: {
             id: 'frostdragon_5', name: '冰霜龙', level: 5, color: 'gold',
-            emoji: '🧊', range: RANGE.MID,
+            emoji: '🧊', image: 'images/frostdragon_5.png', range: RANGE.MID,
             baseStats: { health: 600, attack: 48, speed: 1.2, regen: 10 },
             critRate: 0, critDmg: 2.0,
             traits: ['每秒回血10', '击退'],
@@ -181,7 +181,7 @@ window.GameConfig = (function() {
         },
         angel_5: {
             id: 'angel_5', name: '圣天使', level: 5, color: 'gold',
-            emoji: '✨', range: RANGE.HEAL,
+            emoji: '✨', image: 'images/angel_5.png', range: RANGE.HEAL,
             baseStats: { health: 800, attack: 60, speed: 0.9, regen: 10 },
             critRate: 0.4, critDmg: 2.0,
             traits: ['治疗全体', '治疗暴击40%', '每秒回血10'],
@@ -190,7 +190,7 @@ window.GameConfig = (function() {
         },
         destroyer_5: {
             id: 'destroyer_5', name: '毁灭者', level: 5, color: 'gold',
-            emoji: '💣', range: RANGE.MELEE,
+            emoji: '💣', image: 'images/destroyer_5.png', range: RANGE.MELEE,
             baseStats: { health: 300, attack: 130, speed: 1.0, regen: 0 },
             critRate: 0.25, critDmg: 2.0,
             traits: ['暴击25%', '轻微击退'],
@@ -198,7 +198,7 @@ window.GameConfig = (function() {
         },
         behemoth_5: {
             id: 'behemoth_5', name: '巨兽王', level: 5, color: 'gold',
-            emoji: '🦍', range: RANGE.MELEE,
+            emoji: '🦍', image: 'images/behemoth_5.png', range: RANGE.MELEE,
             baseStats: { health: 1300, attack: 55, speed: 1.2, regen: 28 },
             critRate: 0, critDmg: 2.0,
             traits: ['每秒回血28', '大幅击退'],
@@ -206,7 +206,7 @@ window.GameConfig = (function() {
         },
         sniper_5: {
             id: 'sniper_5', name: '狙击王', level: 5, color: 'gold',
-            emoji: '🎯', range: RANGE.RANGED,
+            emoji: '🎯', image: 'images/sniper_5.png', range: RANGE.RANGED,
             baseStats: { health: 450, attack: 42, speed: 1.4, regen: 0 },
             critRate: 0.5, critDmg: 3.0,
             traits: ['暴击50%', '穿透攻击'],

@@ -11,10 +11,15 @@ window.UI = (function() {
     let freeEnemySlots = [null, null, null, null];  // 存储 templateId
     let freePickSide = 'ally';  // 当前选择填充到哪一边
     // 将怪物对象转为战斗单位数据（消除重复属性映射）
+    // 怪物贴图HTML生成
+    function monsterImgHTML(templateId, emoji, size) {
+        return `<img src="images/${templateId}.png" alt="${emoji}" class="monster-img" style="width:${size};height:${size};object-fit:cover;border-radius:50%;" onerror="this.style.display='none';this.insertAdjacentText('afterend','${emoji}')">`;
+    }
     function monsterToUnitData(m) {
+        const tpl = GameConfig.getTemplate(m.templateId);
         return {
             uniqueId: m.uniqueId,
-            name: m.name, emoji: m.emoji, range: m.range,
+            name: m.name, emoji: m.emoji, image: tpl ? tpl.image : null, range: m.range,
             health: m.stats.health, maxHealth: m.stats.maxHealth,
             attack: m.stats.attack, speed: m.stats.speed,
             regen: m.stats.regen, critRate: m.critRate, critDmg: m.critDmg,
@@ -40,7 +45,7 @@ window.UI = (function() {
     function battleResultToUnitData(u) {
         return {
             uniqueId: u.uniqueId,
-            name: u.name, emoji: u.emoji, range: u.range,
+            name: u.name, emoji: u.emoji, image: u.image || null, range: u.range,
             health: Math.floor(u.health), maxHealth: u.maxHealth,
             attack: u.attack, speed: u.speed,
             regen: u.regen, critRate: u.critRate, critDmg: u.critDmg,
@@ -154,7 +159,7 @@ window.UI = (function() {
             card.setAttribute('draggable', 'true');
             card.dataset.uniqueId = m.uniqueId;
             card.innerHTML = `
-                <div class="emoji">${m.emoji}</div>
+                <div class="monster-card-img">${monsterImgHTML(m.templateId, m.emoji, '68px')}</div>
                 <div class="name" style="color:${GameConfig.QUALITY_COLORS[m.color]}">${m.name}</div>
                 <div class="info">❤${m.stats.health} ⚔${m.stats.attack}</div>
                 <div class="info">⏱${m.stats.speed}s ${m.stats.regen ? '↻'+m.stats.regen : ''}</div>
@@ -189,7 +194,7 @@ window.UI = (function() {
         els.teamSlots.forEach((slot, i) => {
             const m = team[i];
             if (m) {
-                slot.innerHTML = `<div class="slot-emoji">${m.emoji}</div><div class="slot-name">${m.name}</div>`;
+                slot.innerHTML = `${monsterImgHTML(m.templateId, m.emoji, '38px')}<div class="slot-name">${m.name}</div>`;
                 slot.classList.add('filled');
             } else {
                 slot.innerHTML = '空';
@@ -200,17 +205,17 @@ window.UI = (function() {
 
     function renderSynthSlots() {
         if (synthSlotA) {
-            els.synthSlotA.textContent = synthSlotA.emoji + ' ' + synthSlotA.name;
+            els.synthSlotA.innerHTML = monsterImgHTML(synthSlotA.templateId, synthSlotA.emoji, '30px') + ' ' + synthSlotA.name;
             els.synthSlotA.style.color = GameConfig.QUALITY_COLORS[synthSlotA.color];
         } else {
-            els.synthSlotA.textContent = '拖入怪物A';
+            els.synthSlotA.innerHTML = '拖入怪物A';
             els.synthSlotA.style.color = '#888';
         }
         if (synthSlotB) {
-            els.synthSlotB.textContent = synthSlotB.emoji + ' ' + synthSlotB.name;
+            els.synthSlotB.innerHTML = monsterImgHTML(synthSlotB.templateId, synthSlotB.emoji, '30px') + ' ' + synthSlotB.name;
             els.synthSlotB.style.color = GameConfig.QUALITY_COLORS[synthSlotB.color];
         } else {
-            els.synthSlotB.textContent = '拖入怪物B';
+            els.synthSlotB.innerHTML = '拖入怪物B';
             els.synthSlotB.style.color = '#888';
         }
         updateSynthButton();
@@ -227,7 +232,7 @@ window.UI = (function() {
                 els.synthesizeBtn.textContent = `合成 (${cost}💰)`;
                 els.synthPreview.innerHTML = `
                     <div class="preview-card" style="border-color:${GameConfig.QUALITY_COLORS[tpl.color]}">
-                        <span class="preview-emoji">${tpl.emoji}</span>
+                        ${monsterImgHTML(tpl.id, tpl.emoji, '36px')}
                         <span class="preview-name" style="color:${GameConfig.QUALITY_COLORS[tpl.color]}">${tpl.name}</span>
                         <span class="preview-level">Lv.${tpl.level}</span>
                     </div>`;
@@ -280,12 +285,12 @@ window.UI = (function() {
                 if (parents) {
                     const pa = GameConfig.getTemplate(parents[0]);
                     const pb = GameConfig.getTemplate(parents[1]);
-                    parentsHtml = `<div class="node-parents">${pa.emoji}+${pb.emoji}</div>`;
+                    parentsHtml = `<div class="node-parents">${monsterImgHTML(pa.id, pa.emoji, '24px')}+${monsterImgHTML(pb.id, pb.emoji, '24px')}</div>`;
                 }
                 const cost = t.level > 1 ? `<div class="node-cost">💰${GameConfig.getSynthCost(t.level)}</div>` : '';
 
                 node.innerHTML = `
-                    <div class="node-emoji">${t.emoji}</div>
+                    ${monsterImgHTML(t.id, t.emoji, '30px')}
                     <div class="node-name">${t.name}</div>
                     ${parentsHtml}
                     ${cost}
@@ -324,7 +329,7 @@ window.UI = (function() {
                     const card = document.createElement('div');
                     card.className = 'enemy-preview-card';
                     card.title = `${tpl.name} ❤${tpl.baseStats.health} ⚔${tpl.baseStats.attack}`;
-                    card.innerHTML = `<div>${tpl.emoji}</div><div style="font-size:0.6rem;">${tpl.name}</div>`;
+                    card.innerHTML = `${monsterImgHTML(tpl.id, tpl.emoji, '42px')}<div style="font-size:0.6rem;">${tpl.name}</div>`;
                     row.appendChild(card);
                 }
             });
@@ -351,11 +356,11 @@ window.UI = (function() {
             if (cp[t.id]) {
                 const pa = GameConfig.getTemplate(cp[t.id][0]);
                 const pb = GameConfig.getTemplate(cp[t.id][1]);
-                if (pa && pb) recipeText = `<div class="b-recipe">${pa.emoji}+${pb.emoji} →</div>`;
+                if (pa && pb) recipeText = `<div class="b-recipe">${monsterImgHTML(pa.id, pa.emoji, '24px')}+${monsterImgHTML(pb.id, pb.emoji, '24px')} →</div>`;
             }
 
             card.innerHTML = `
-                <div class="b-emoji">${t.emoji}</div>
+                ${monsterImgHTML(t.id, t.emoji, '44px')}
                 <div class="b-info">
                     <div class="b-name" style="color:${GameConfig.QUALITY_COLORS[t.color]}">${t.name} Lv.${t.level}</div>
                     ${recipeText}
@@ -465,7 +470,7 @@ window.UI = (function() {
 
     function showMonsterDetail(monster) {
         let html = '<div style="text-align:left;padding:12px 18px;font-size:0.85rem;line-height:1.8;">'
-            + '<div style="font-size:1.4rem;margin-bottom:8px;">' + monster.emoji + ' <b>' + monster.name + '</b> <span style="color:#aaa;">(Lv.' + monster.level + ' ' + monster.color + ')</span></div>'
+            + '<div style="font-size:1.4rem;margin-bottom:8px;">' + monsterImgHTML(monster.templateId, monster.emoji, '34px') + ' <b>' + monster.name + '</b> <span style="color:#aaa;">(Lv.' + monster.level + ' ' + monster.color + ')</span></div>'
             + '<div>❤️ 生命: ' + monster.stats.health + '/' + monster.stats.maxHealth + '</div>'
             + '<div>⚔️ 攻击: ' + monster.stats.attack + '</div>'
             + '<div>⏱️ 攻速: ' + monster.stats.speed + '秒/次</div>'
@@ -825,7 +830,7 @@ window.UI = (function() {
             card.setAttribute('draggable', 'true');
             card.dataset.uniqueId = m.uniqueId;
             card.innerHTML = `
-                <div class="emoji">${m.emoji}</div>
+                <div class="monster-card-img">${monsterImgHTML(m.templateId, m.emoji, '68px')}</div>
                 <div class="name" style="color:${GameConfig.QUALITY_COLORS[m.color]}">${m.name}</div>
                 <div class="info">❤${m.stats.health} ⚔${m.stats.attack}</div>
             `;
@@ -876,7 +881,7 @@ window.UI = (function() {
                 card.style.borderColor = GameConfig.QUALITY_COLORS[t.color];
                 card.title = `${t.name}\n❤${t.baseStats.health} ⚔${t.baseStats.attack} ⏱${t.baseStats.speed}s\n${(t.traits||[]).join(' · ')}`;
                 card.innerHTML = `
-                    <div class="free-tpl-emoji">${t.emoji}</div>
+                    ${monsterImgHTML(t.id, t.emoji, '44px')}
                     <div class="free-tpl-name" style="color:${GameConfig.QUALITY_COLORS[t.color]}">${t.name}</div>
                     <div class="free-tpl-stats">❤${t.baseStats.health} ⚔${t.baseStats.attack}</div>
                 `;
@@ -902,7 +907,7 @@ window.UI = (function() {
             const tid = freeAllySlots[i];
             if (tid) {
                 const tpl = GameConfig.getTemplate(tid);
-                slot.innerHTML = `<span class="free-slot-emoji">${tpl.emoji}</span><span class="free-slot-name" style="color:${GameConfig.QUALITY_COLORS[tpl.color]}">${tpl.name}</span>`;
+                slot.innerHTML = `${monsterImgHTML(tpl.id, tpl.emoji, '28px')}<span class="free-slot-name" style="color:${GameConfig.QUALITY_COLORS[tpl.color]}">${tpl.name}</span>`;
                 slot.classList.add('filled');
             } else {
                 slot.innerHTML = '空';
@@ -914,7 +919,7 @@ window.UI = (function() {
             const tid = freeEnemySlots[i];
             if (tid) {
                 const tpl = GameConfig.getTemplate(tid);
-                slot.innerHTML = `<span class="free-slot-emoji">${tpl.emoji}</span><span class="free-slot-name" style="color:${GameConfig.QUALITY_COLORS[tpl.color]}">${tpl.name}</span>`;
+                slot.innerHTML = `${monsterImgHTML(tpl.id, tpl.emoji, '28px')}<span class="free-slot-name" style="color:${GameConfig.QUALITY_COLORS[tpl.color]}">${tpl.name}</span>`;
                 slot.classList.add('filled');
             } else {
                 slot.innerHTML = '空';
@@ -986,17 +991,10 @@ window.UI = (function() {
     // ========== 导出的单位映射 ==========
     // 将怪物对象转为战斗单位数据
     function _monsterToUnitData(m) {
+        const tpl2 = GameConfig.getTemplate(m.templateId);
         return {
             uniqueId: m.uniqueId,
-            name: m.name, emoji: m.emoji, range: m.range,
-            health: m.stats.health, maxHealth: m.stats.maxHealth,
-            attack: m.stats.attack, speed: m.stats.speed,
-            regen: m.stats.regen, critRate: m.critRate, critDmg: m.critDmg,
-            healAmount: m.healAmount, traits: m.traits,
-            burstCount: m.burstCount || 1,
-            poisonRange: m.poisonRange || 0, knockback: m.knockback || 0,
-            splash: m.splash || 0, splashPct: m.splashPct || 0,
-            lifesteal: m.lifesteal || 0,
+            name: m.name, emoji: m.emoji, image: tpl2 ? tpl2.image : null, range: m.range,
             poisonDmg: m.poisonDmg || 0, poisonDur: m.poisonDur || 0,
             berserk: m.berserk || 0,
             thorns: m.thorns || 0,
