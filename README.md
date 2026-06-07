@@ -1,2 +1,8 @@
-# monster-factory
-A simple front-end battle game, AI-assisted development.
+# 怪物工厂
+一个简单的前端战斗游戏,AI辅助开发.
+
+## 游玩方式
+直接把项目克隆到本地,用浏览器打开index.html即可玩.
+
+## 注意
+由于开发仓促,数值很不平衡,也可能存在许多bug,UI界面也未经过优化,很可能会带来不好的体验.
