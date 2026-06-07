@@ -1036,6 +1036,17 @@ window.CanvasBattle = (function() {
 
         const ctx = canvas.getContext('2d');
 
+        // 倍速按钮点击
+        canvas.addEventListener('click', (e) => {
+            const rect = canvas.getBoundingClientRect();
+            const sx = (e.clientX - rect.left) / rect.width * canvas.width;
+            const sy = (e.clientY - rect.top) / rect.height * canvas.height;
+            const bx = canvas.width - 74, by = 4, bw = 66, bh = 30;
+            if (sx >= bx && sx <= bx + bw && sy >= by && sy <= by + bh) {
+                speedMultiplier = speedMultiplier >= 2 ? 1 : 2;
+            }
+        });
+
         // Canvas尺寸适配
         function resizeCanvas() {
             canvas.width = window.innerWidth;
@@ -1117,6 +1128,13 @@ window.CanvasBattle = (function() {
                 unitImages.set(u.image, img);
             }
         });
+
+        // 预加载背景图
+        const bgImg = new Image();
+        bgImg.src = 'images/background.png';
+
+        // 倍速控制
+        let speedMultiplier = 1; // 1x / 2x
 
         const damageNumbers = [];
         const projectiles = [];
@@ -1373,12 +1391,29 @@ window.CanvasBattle = (function() {
 
         // ===== 主循环 =====
         // ===== 渲染HUD =====
+        // 倍速按钮区域
+        let speedBtnX = 0, speedBtnY = 0, speedBtnW = 70, speedBtnH = 38;
+
         function renderHUD(ctx, w) {
             const info = callbacks.getHudInfo ? callbacks.getHudInfo() : { mode: '战斗', reward: '', stage: '' };
             ctx.fillStyle = 'rgba(0,0,0,0.5)';
             ctx.fillRect(0, 0, w, 38);
             ctx.fillStyle = 'rgba(255,255,255,0.06)';
             ctx.fillRect(0, 38, w, 1);
+
+            // 倍速按钮（右上角）
+            const bx = w - 74, by = 4, bw = 66, bh = 30;
+            speedBtnX = bx; speedBtnY = by; speedBtnW = bw; speedBtnH = bh;
+            ctx.fillStyle = speedMultiplier > 1 ? 'rgba(255,140,0,0.25)' : 'rgba(255,255,255,0.08)';
+            ctx.fillRect(bx, by, bw, bh);
+            ctx.strokeStyle = speedMultiplier > 1 ? '#ff8c00' : 'rgba(255,255,255,0.3)';
+            ctx.lineWidth = 1.5;
+            ctx.strokeRect(bx, by, bw, bh);
+            ctx.fillStyle = speedMultiplier > 1 ? '#ff8c00' : '#ccc';
+            ctx.font = 'bold 13px monospace';
+            ctx.textAlign = 'center';
+            ctx.fillText('⏩ ' + speedMultiplier + '×', bx + bw / 2, by + bh / 2 + 5);
+
             ctx.fillStyle = '#ff8c00';
             ctx.font = 'bold 14px monospace';
             ctx.textAlign = 'left';
@@ -1403,19 +1438,7 @@ window.CanvasBattle = (function() {
         }
 
         function renderEvents(ctx, w, h) {
-            const groundY = h * 0.78;
-            const startY = groundY + 10;
-            const visible = battleEvents.filter(e => e.life > 0).slice(-3);
-            visible.forEach((e, i) => {
-                const alpha = Math.min(1, e.life / e.maxLife);
-                ctx.save();
-                ctx.globalAlpha = alpha * 0.9;
-                ctx.fillStyle = e.color;
-                ctx.font = '11px monospace';
-                ctx.textAlign = 'left';
-                ctx.fillText(e.text, 16, startY + i * 16);
-                ctx.restore();
-            });
+            // 背景贴图模式下不渲染文字日志
         }
 
         let lastTime = performance.now();
@@ -1425,6 +1448,7 @@ window.CanvasBattle = (function() {
             lastTime = timestamp;
             // 防止大帧跳跃
             if (delta > 0.1) delta = 0.1;
+            delta *= speedMultiplier; // 倍速
 
             ctx.clearRect(0, 0, canvas.width, canvas.height);
 
@@ -1664,9 +1688,6 @@ window.CanvasBattle = (function() {
 
             ctx.restore();
 
-            // 渲染事件日志（不受shake影响）
-            renderEvents(ctx, canvas.width, canvas.height);
-
             // 胜利/失败叠加层（不受shake影响）
             if (battleState === 'victory' || battleState === 'defeat') {
                 victoryOverlayAlpha = Math.min(1, victoryOverlayAlpha + delta * 1.5);
@@ -1742,95 +1763,16 @@ window.CanvasBattle = (function() {
             }
         }
 
-        // 绘制背景（分层版）
+        // 绘制背景（贴图全屏覆盖）
         function drawBackground(ctx, w, h) {
-            // 天空渐变
-            const skyGrad = ctx.createLinearGradient(0, 0, 0, h * 0.7);
-            skyGrad.addColorStop(0, '#1a1c2e');
-            skyGrad.addColorStop(0.4, '#1e2940');
-            skyGrad.addColorStop(0.8, '#2a3a50');
-            skyGrad.addColorStop(1, '#1e2e3e');
-            ctx.fillStyle = skyGrad;
-            ctx.fillRect(0, 0, w, h);
-
-            // 远景山脉剪影
-            ctx.fillStyle = '#161e2a';
-            ctx.beginPath();
-            ctx.moveTo(0, h * 0.75);
-            for (let i = 0; i <= 8; i++) {
-                const mx = w * i / 8;
-                const my = h * 0.72 - Math.sin(i * 1.3) * h * 0.06 - Math.cos(i * 2.7) * h * 0.04;
-                ctx.lineTo(mx, my);
-            }
-            ctx.lineTo(w, h * 0.78);
-            ctx.lineTo(0, h * 0.78);
-            ctx.closePath();
-            ctx.fill();
-
-            // 中景建筑群（方块剪影）
-            ctx.fillStyle = '#1a2330';
-            const buildings = [
-                [0.02, 0.68, 0.08, 0.04], [0.12, 0.65, 0.06, 0.07],
-                [0.22, 0.67, 0.07, 0.05], [0.32, 0.64, 0.09, 0.08],
-                [0.45, 0.66, 0.06, 0.06], [0.56, 0.63, 0.08, 0.09],
-                [0.68, 0.67, 0.07, 0.05], [0.78, 0.65, 0.06, 0.07],
-                [0.88, 0.68, 0.09, 0.04]
-            ];
-            buildings.forEach(([bx, by, bw, bh]) => {
-                ctx.fillRect(w * bx, h * by, w * bw, h * bh);
-            });
-
-            // 地面区域
-            const groundY = h * 0.78;
-            ctx.fillStyle = '#1a222e';
-            ctx.fillRect(0, groundY, w, h - groundY);
-
-            // 地面纹理线
-            ctx.strokeStyle = 'rgba(255,255,255,0.04)';
-            ctx.lineWidth = 1;
-            for (let gy = groundY; gy < h; gy += 14) {
-                ctx.beginPath();
-                ctx.moveTo(0, gy);
-                ctx.lineTo(w, gy);
-                ctx.stroke();
-            }
-            // 竖线模拟地砖
-            ctx.strokeStyle = 'rgba(255,255,255,0.025)';
-            for (let gx = 30; gx < w; gx += 40) {
-                ctx.beginPath();
-                ctx.moveTo(gx, groundY);
-                ctx.lineTo(gx, h);
-                ctx.stroke();
-            }
-
-            // 中线（虚线战场分界，悬空）
-            ctx.strokeStyle = 'rgba(255,255,255,0.08)';
-            ctx.lineWidth = 1;
-            ctx.setLineDash([10, 25]);
-            ctx.beginPath();
-            ctx.moveTo(w / 2, h * 0.18);
-            ctx.lineTo(w / 2, groundY - 10);
-            ctx.stroke();
-            ctx.setLineDash([]);
-
-            // 地面高光线
-            ctx.strokeStyle = 'rgba(255,140,0,0.2)';
-            ctx.lineWidth = 2;
-            ctx.beginPath();
-            ctx.moveTo(0, groundY);
-            ctx.lineTo(w, groundY);
-            ctx.stroke();
-
-            // 浮动粒子
-            const t = Date.now() / 1000;
-            for (let i = 0; i < 20; i++) {
-                const px = (i * 137 + 53) % w;
-                const py = (i * 97 + 30) % (h * 0.6) + h * 0.06;
-                const alpha = 0.08 + Math.sin(t * 0.7 + i) * 0.04;
-                ctx.fillStyle = `rgba(200,180,140,${alpha})`;
-                ctx.beginPath();
-                ctx.arc(px, py, 1.5, 0, Math.PI * 2);
-                ctx.fill();
+            if (bgImg && bgImg.complete && bgImg.naturalWidth > 0) {
+                ctx.drawImage(bgImg, 0, 0, w, h);
+            } else {
+                const skyGrad = ctx.createLinearGradient(0, 0, 0, h);
+                skyGrad.addColorStop(0, '#1a1c2e');
+                skyGrad.addColorStop(1, '#1e2e3e');
+                ctx.fillStyle = skyGrad;
+                ctx.fillRect(0, 0, w, h);
             }
         }
 
