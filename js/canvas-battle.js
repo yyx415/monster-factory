@@ -342,12 +342,18 @@ window.CanvasBattle = (function() {
             }
 
             // 中毒DOT
-            for (let i = this.poisonStacks.length - 1; i >= 0; i--) {
-                const ps = this.poisonStacks[i];
+            let pi = 0;
+            while (pi < this.poisonStacks.length) {
+                const ps = this.poisonStacks[pi];
                 this.health -= ps.dmg * delta;
                 this._poisonTick = (this._poisonTick || 0) + ps.dmg * delta;
                 ps.dur -= delta;
-                if (ps.dur <= 0) this.poisonStacks.splice(i, 1);
+                if (ps.dur <= 0) {
+                    this.poisonStacks[pi] = this.poisonStacks[this.poisonStacks.length - 1];
+                    this.poisonStacks.pop();
+                } else {
+                    pi++;
+                }
             }
             if (this.health <= 0 && this.alive) {
                 this.health = 0; this.alive = false; this.deathTimer = 0; playSound('death');
@@ -633,43 +639,47 @@ window.CanvasBattle = (function() {
                 this.renderHealthBar(ctx, drawX, drawY - 42);
             }
 
-            // 状态效果叠加层
-            // 减速 — 冰蓝色描边
-            if (this.slowTimer > 0) {
+            // 状态效果叠加层（合并一次save/restore）
+            const hasSlow = this.slowTimer > 0;
+            const hasPoison = this.poisonStacks && this.poisonStacks.length > 0;
+            const hasBerserk = this.berserk > 0 && this.alive && this.health / this.maxHealth < 0.7;
+            if (hasSlow || hasPoison || hasBerserk) {
                 ctx.save();
-                ctx.globalAlpha = 0.6;
-                ctx.strokeStyle = '#88ddff';
-                ctx.lineWidth = 3;
-                ctx.beginPath();
-                ctx.arc(drawX, drawY, 28, 0, Math.PI * 2);
-                ctx.stroke();
-                ctx.restore();
-            }
-            // 中毒 — 绿色毒泡
-            if (this.poisonStacks && this.poisonStacks.length > 0) {
-                ctx.save();
-                ctx.globalAlpha = 0.4;
-                ctx.fillStyle = '#44ff44';
-                for (let pi = 0; pi < 3; pi++) {
-                    const bx = drawX + Math.sin(performance.now() * 0.003 + pi * 2.1) * 14;
-                    const by = drawY - 32 + Math.cos(performance.now() * 0.004 + pi * 1.7) * 8;
+                const now = performance.now();
+                // 减速 — 冰蓝色描边
+                if (hasSlow) {
+                    ctx.globalAlpha = 0.6;
+                    ctx.strokeStyle = '#88ddff';
+                    ctx.lineWidth = 3;
                     ctx.beginPath();
-                    ctx.arc(bx, by, 2.5, 0, Math.PI * 2);
-                    ctx.fill();
+                    ctx.arc(drawX, drawY, 28, 0, Math.PI * 2);
+                    ctx.stroke();
                 }
-                ctx.restore();
-            }
-            // 狂战士 — 红色蒸汽
-            if (this.berserk > 0 && this.alive && this.health / this.maxHealth < 0.7) {
-                ctx.save();
-                ctx.globalAlpha = 0.3;
-                ctx.fillStyle = '#ff4444';
-                for (let bi = 0; bi < 4; bi++) {
-                    const bx = drawX + Math.sin(performance.now() * 0.005 + bi * 1.5) * 18;
-                    const by = drawY - 28 - Math.abs(Math.cos(performance.now() * 0.006 + bi)) * 15;
-                    ctx.beginPath();
-                    ctx.arc(bx, by, 2 + Math.random(), 0, Math.PI * 2);
-                    ctx.fill();
+                // 中毒 — 绿色毒泡
+                if (hasPoison) {
+                    ctx.globalAlpha = 0.4;
+                    ctx.fillStyle = '#44ff44';
+                    if (!this._poisonSeeds) { this._poisonSeeds = [Math.random() * 10, Math.random() * 10, Math.random() * 10]; }
+                    for (let pi = 0; pi < 3; pi++) {
+                        const bx = drawX + Math.sin(now * 0.003 + this._poisonSeeds[pi]) * 14;
+                        const by = drawY - 32 + Math.cos(now * 0.004 + this._poisonSeeds[pi]) * 8;
+                        ctx.beginPath();
+                        ctx.arc(bx, by, 2.5, 0, Math.PI * 2);
+                        ctx.fill();
+                    }
+                }
+                // 狂战士 — 红色蒸汽
+                if (hasBerserk) {
+                    ctx.globalAlpha = 0.3;
+                    ctx.fillStyle = '#ff4444';
+                    if (!this._berserkSeeds) { this._berserkSeeds = [Math.random() * 10, Math.random() * 10, Math.random() * 10, Math.random() * 10]; }
+                    for (let bi = 0; bi < 4; bi++) {
+                        const bx = drawX + Math.sin(now * 0.005 + this._berserkSeeds[bi]) * 18;
+                        const by = drawY - 28 - Math.abs(Math.cos(now * 0.006 + this._berserkSeeds[bi])) * 15;
+                        ctx.beginPath();
+                        ctx.arc(bx, by, 2, 0, Math.PI * 2);
+                        ctx.fill();
+                    }
                 }
                 ctx.restore();
             }
@@ -1115,6 +1125,22 @@ window.CanvasBattle = (function() {
         const meleeSlashes = [];     // 近战斩击弧线
         const shockwaves = [];       // 冲击波圆环
 
+        // ===== DamageNumber 对象池 =====
+        const dnPool = [];
+        function _allocDamage(x, y, text, color, isCrit) {
+            const dn = dnPool.length > 0 ? dnPool.pop() : new DamageNumber(0, 0, '', '#fff', false);
+            dn.x = x + (Math.random() - 0.5) * 20;
+            dn.y = y;
+            dn.text = text;
+            dn.color = color;
+            dn.isCrit = isCrit;
+            dn.life = 1.0;
+            dn.maxLife = 1.0;
+            dn.vy = -40;
+            dn.shakeAmp = isCrit ? 3 : 0;
+            return dn;
+        }
+
         // ===== 战斗状态机 =====
         // countdown → fighting → victory | defeat → done
         let battleState = 'countdown';
@@ -1146,7 +1172,7 @@ window.CanvasBattle = (function() {
             if (!results) return;
             results.forEach(r => {
                 if (r.type === 'heal') {
-                    damageNumbers.push(new DamageNumber(
+                    damageNumbers.push(_allocDamage(
                         r.x, r.y,
                         '+' + r.amount,
                         '#4caf50',
@@ -1159,7 +1185,7 @@ window.CanvasBattle = (function() {
                         '#4caf50', 'HEAL'
                     ));
                 } else if (r.type === 'healDmg') {
-                    damageNumbers.push(new DamageNumber(r.x, r.y, '-' + r.amount, '#ffdd00', false));
+                    damageNumbers.push(_allocDamage(r.x, r.y, '-' + r.amount, '#ffdd00', false));
                 } else if (r.type === 'lineAOE') {
                     // 毒液线段：线段上的敌方单位全吃伤害+击退（仅命中敌方，不误伤友军）
                     const hitTargets = r.attacker.isEnemy ? allies : enemiesList;
@@ -1172,7 +1198,7 @@ window.CanvasBattle = (function() {
                             if (r.attacker.slowPct > 0) { t.slowTimer = r.attacker.slowDur; t.speedMult = r.attacker.slowPct; }
                             t.takeDamage(r.damage);
                             t.applyKnockback(r.attacker.x, r.knockbackDist, canvas.width);
-                            damageNumbers.push(new DamageNumber(
+                            damageNumbers.push(_allocDamage(
                                 t.x, t.y - 20,
                                 '-' + r.damage,
                                 r.isCrit ? '#ff4444' : '#a0ff60',
@@ -1200,9 +1226,9 @@ window.CanvasBattle = (function() {
                     // 攻击前摇闪光
                     at.atkFlashTimer = 0.08;
                     // 近战斩击弧线
-                    meleeSlashes.push(new MeleeSlash(at.x, at.y - 10, r.target.x, r.target.y - 10, '#ffffff', r.isCrit));
+                    if (meleeSlashes.length < 10) meleeSlashes.push(new MeleeSlash(at.x, at.y - 10, r.target.x, r.target.y - 10, '#ffffff', r.isCrit));
                     // 命中粒子
-                    hitParticles.push(new HitParticle(r.target.x, r.target.y - 10, r.isCrit ? 6 : 3, r.isCrit ? 'rgb(255,100,50)' : 'rgb(255,200,150)', r.isCrit ? 100 : 60));
+                    if (hitParticles.length < 15) hitParticles.push(new HitParticle(r.target.x, r.target.y - 10, r.isCrit ? 6 : 3, r.isCrit ? 'rgb(255,100,50)' : 'rgb(255,200,150)', r.isCrit ? 100 : 60));
                     // 吸血
                     if (at.lifesteal > 0) {
                         const heal = Math.floor(r.damage * at.lifesteal);
@@ -1218,7 +1244,7 @@ window.CanvasBattle = (function() {
                         r.target.speedMult = at.slowPct;
                     }
                     r.target.takeDamage(r.damage, at);
-                    damageNumbers.push(new DamageNumber(
+                    damageNumbers.push(_allocDamage(
                         r.x, r.y,
                         '-' + r.damage,
                         r.isCrit ? '#ff4444' : '#ffffff',
@@ -1235,14 +1261,14 @@ window.CanvasBattle = (function() {
                     r.target.applyKnockback(at.x, getKnockbackDist(at.traits, at.range, at.knockback), canvas.width);
                     // 溅射
                     if (at.splash > 0) {
-                        shockwaves.push(new ShockwaveRing(r.target.x, r.target.y - 10, '#ff8800', at.splash));
+                        if (shockwaves.length < 8) shockwaves.push(new ShockwaveRing(r.target.x, r.target.y - 10, '#ff8800', at.splash));
                         const opposite = at.isEnemy ? allies : enemiesList;
                         opposite.forEach(u => {
                             if (!u.alive || u === r.target) return;
                             if (Math.abs(u.x - r.target.x) < at.splash) {
                                 const sd = Math.floor(r.damage * at.splashPct);
                                 u.takeDamage(sd, at);
-                                damageNumbers.push(new DamageNumber(u.x, u.y - 20, '-' + sd, '#ff6600', false));
+                                damageNumbers.push(_allocDamage(u.x, u.y - 20, '-' + sd, '#ff6600', false));
                                 u.applyKnockback(at.x, getKnockbackDist(at.traits, at.range, at.knockback), canvas.width);
                             }
                         });
@@ -1273,11 +1299,14 @@ window.CanvasBattle = (function() {
 
         // ===== 更新弹丸命中 =====
         function updateProjectiles(delta) {
-            for (let i = projectiles.length - 1; i >= 0; i--) {
+            const MAX_PROJ = 20; // 硬上限
+            while (projectiles.length > MAX_PROJ) projectiles.pop();
+
+            let i = 0;
+            while (i < projectiles.length) {
                 const p = projectiles[i];
                 p.update(delta);
 
-                // 检查命中
                 const targets = p.vx > 0 ? enemiesList : allies;
                 let hit = false;
                 for (const t of targets) {
@@ -1295,10 +1324,10 @@ window.CanvasBattle = (function() {
                             const heal = Math.floor(actualDmg * p.lifesteal);
                             if (heal > 0) {
                                 p.attacker.health = Math.min(p.attacker.maxHealth, p.attacker.health + heal);
-                                damageNumbers.push(new DamageNumber(p.attacker.x, p.attacker.y - 20, '+' + heal, '#4caf50', false));
+                                damageNumbers.push(_allocDamage(p.attacker.x, p.attacker.y - 20, '+' + heal, '#4caf50', false));
                             }
                         }
-                        damageNumbers.push(new DamageNumber(
+                        damageNumbers.push(_allocDamage(
                             t.x, t.y - 20,
                             '-' + p.damage,
                             p.isCrit ? '#ff4444' : '#ffffff',
@@ -1309,19 +1338,19 @@ window.CanvasBattle = (function() {
                         }
                         t.flashTimer = 0.1;
                         // 命中粒子
-                        hitParticles.push(new HitParticle(t.x, t.y - 10, p.isCrit ? 5 : 2, p.isCrit ? 'rgb(255,100,50)' : 'rgb(255,200,150)', p.isCrit ? 90 : 50));
+                        if (hitParticles.length < 15) hitParticles.push(new HitParticle(t.x, t.y - 10, p.isCrit ? 5 : 2, p.isCrit ? 'rgb(255,100,50)' : 'rgb(255,200,150)', p.isCrit ? 90 : 50));
                         t.applyKnockback(p.attacker.x, p.knockbackDist, canvas.width);
                         if (p.isCrit) { shakeAmount = Math.max(shakeAmount, 4); shakeDuration = 0.3; }
                         // 溅射
                         if (p.splash > 0) {
-                            shockwaves.push(new ShockwaveRing(t.x, t.y - 10, '#ff6600', p.splash));
+                            if (shockwaves.length < 8) shockwaves.push(new ShockwaveRing(t.x, t.y - 10, '#ff6600', p.splash));
                             const opp = p.vx > 0 ? enemiesList : allies;
                             opp.forEach(u => {
                                 if (!u.alive || u === t) return;
                                 if (Math.abs(u.x - t.x) < p.splash) {
                                     const sd = Math.floor(p.damage * p.splashPct);
                                     u.takeDamage(sd);
-                                    damageNumbers.push(new DamageNumber(u.x, u.y - 20, '-' + sd, '#ff6600', false));
+                                    damageNumbers.push(_allocDamage(u.x, u.y - 20, '-' + sd, '#ff6600', false));
                                     u.applyKnockback(p.attacker.x, p.knockbackDist, canvas.width);
                                 }
                             });
@@ -1334,7 +1363,10 @@ window.CanvasBattle = (function() {
                 // 出界或命中后移除
                 if (hit || p.x < -50 || p.x > canvas.width + 50 ||
                     p.y < -50 || p.y > canvas.height + 50) {
-                    projectiles.splice(i, 1);
+                    projectiles[i] = projectiles[projectiles.length - 1];
+                    projectiles.pop();
+                } else {
+                    i++;
                 }
             }
         }
@@ -1483,32 +1515,34 @@ window.CanvasBattle = (function() {
                 }
                 battleTime += delta;
 
-                // 更新所有单位
-                allUnits.forEach(unit => {
+                // ---- 合并单位更新+攻击判定 ----
+                for (let ui = 0; ui < allUnits.length; ui++) {
+                    const unit = allUnits[ui];
+                    // 移动更新
                     if (unit.alive) {
                         unit.updateMovement(unit.isEnemy ? allies : enemiesList, delta);
                     }
                     unit.update(delta, allies, enemiesList);
-                    // 中毒伤害数字（每秒弹一次总DPS）
+                    // 中毒/回血数字
                     if (unit._poisonTick > 0) {
                         unit._poisonShowTimer = (unit._poisonShowTimer || 0) + delta;
                         if (unit._poisonShowTimer >= 1.0) {
                             const totalDPS = unit.poisonStacks.reduce((s, ps) => s + ps.dmg, 0);
-                            damageNumbers.push(new DamageNumber(unit.x, unit.y - 30, '☠-' + totalDPS, '#a0ff60', false));
+                            if (damageNumbers.length < 30) {
+                                damageNumbers.push(_allocDamage(unit.x, unit.y - 30, '☠-' + totalDPS, '#a0ff60', false));
+                            }
                             unit._poisonShowTimer = 0;
                         }
                         unit._poisonTick = 0;
                     }
-                    // 回血数字（每秒触发时显示）
                     if (unit._regenTick) {
-                        damageNumbers.push(new DamageNumber(unit.x, unit.y - 30, '+' + unit.regen, '#4caf50', false));
+                        if (damageNumbers.length < 30) {
+                            damageNumbers.push(_allocDamage(unit.x, unit.y - 30, '+' + unit.regen, '#4caf50', false));
+                        }
                         unit._regenTick = false;
                     }
-                });
-
-                // 攻击判定
-                allUnits.forEach(unit => {
-                    if (!unit.alive) return;
+                    // 攻击判定
+                    if (!unit.alive) continue;
                     unit.attackTimer += delta;
                     const effectiveSpeed = unit.speed * unit.speedMult;
                     if (unit.attackTimer >= effectiveSpeed) {
@@ -1519,68 +1553,53 @@ window.CanvasBattle = (function() {
                         );
                         processAttackResults(results);
                     }
-                });
+                }
 
                 // 弹丸更新
                 updateProjectiles(delta);
 
-                // 伤害数字更新
-                for (let i = damageNumbers.length - 1; i >= 0; i--) {
-                    damageNumbers[i].update(delta);
-                    if (damageNumbers[i].life <= 0) {
-                        damageNumbers.splice(i, 1);
+                // ---- 数组更新 (swap+pop 代替 splice) ----
+                const _updateArray = (arr, updFn) => {
+                    let i = 0;
+                    while (i < arr.length) {
+                        if (updFn(arr[i], delta)) {
+                            arr[i] = arr[arr.length - 1];
+                            arr.pop();
+                        } else {
+                            i++;
+                        }
                     }
-                }
+                };
 
-                // 事件日志更新
-                for (let i = battleEvents.length - 1; i >= 0; i--) {
-                    battleEvents[i].update(delta);
-                    if (battleEvents[i].life <= 0) battleEvents.splice(i, 1);
-                }
-
-                // 毒液线段淡出
-                for (let i = poisonLines.length - 1; i >= 0; i--) {
-                    poisonLines[i].life -= delta;
-                    if (poisonLines[i].life <= 0) poisonLines.splice(i, 1);
-                }
-
-                // 命中粒子更新
-                for (let i = hitParticles.length - 1; i >= 0; i--) {
-                    hitParticles[i].update(delta);
-                    if (hitParticles[i].life <= 0) hitParticles.splice(i, 1);
-                }
-
-                // 近战斩击更新
-                for (let i = meleeSlashes.length - 1; i >= 0; i--) {
-                    meleeSlashes[i].update(delta);
-                    if (meleeSlashes[i].life <= 0) meleeSlashes.splice(i, 1);
-                }
-
-                // 冲击波更新
-                for (let i = shockwaves.length - 1; i >= 0; i--) {
-                    shockwaves[i].update(delta);
-                    if (shockwaves[i].life <= 0) shockwaves.splice(i, 1);
-                }
+                if (damageNumbers.length) _updateArray(damageNumbers, (dn, dt) => { dn.update(dt); if (dn.life <= 0) { dnPool.push(dn); return true; } return false; });
+                if (battleEvents.length) _updateArray(battleEvents, (be, dt) => { be.update(dt); return be.life <= 0; });
+                if (poisonLines.length) _updateArray(poisonLines, (pl, dt) => { pl.life -= dt; return pl.life <= 0; });
+                if (hitParticles.length) _updateArray(hitParticles, (hp, dt) => { hp.update(dt); return hp.life <= 0; });
+                if (meleeSlashes.length) _updateArray(meleeSlashes, (ms, dt) => { ms.update(dt); return ms.life <= 0; });
+                if (shockwaves.length) _updateArray(shockwaves, (sw, dt) => { sw.update(dt); return sw.life <= 0; });
 
                 // 自爆检查
-                allUnits.forEach(u => {
+                for (let ui = 0; ui < allUnits.length; ui++) {
+                    const u = allUnits[ui];
                     if (!u.alive && u.explodeDmg > 0 && u.deathTimer < 0.02) {
-                        // 爆炸视觉特效
-                        hitParticles.push(new HitParticle(u.x, u.y - 10, 12, 'rgb(255,80,20)', 150));
-                        shockwaves.push(new ShockwaveRing(u.x, u.y - 10, '#ff4400', u.explodeRange));
+                        if (hitParticles.length < 15) hitParticles.push(new HitParticle(u.x, u.y - 10, 12, 'rgb(255,80,20)', 150));
+                        if (shockwaves.length < 8) shockwaves.push(new ShockwaveRing(u.x, u.y - 10, '#ff4400', u.explodeRange));
                         shakeAmount = Math.max(shakeAmount, 8);
                         shakeDuration = 0.4;
                         const opp = u.isEnemy ? allies : enemiesList;
-                        opp.forEach(t => {
-                            if (!t.alive) return;
+                        for (let ti = 0; ti < opp.length; ti++) {
+                            const t = opp[ti];
+                            if (!t.alive) continue;
                             if (Math.abs(t.x - u.x) < u.explodeRange) {
                                 t.takeDamage(u.explodeDmg);
-                                damageNumbers.push(new DamageNumber(t.x, t.y - 20, '-' + u.explodeDmg, '#ff4400', true));
-                                u.explodeDmg = 0; // 只爆一次
+                                if (damageNumbers.length < 30) {
+                                    damageNumbers.push(_allocDamage(t.x, t.y - 20, '-' + u.explodeDmg, '#ff4400', true));
+                                }
+                                u.explodeDmg = 0;
                             }
-                        });
+                        }
                     }
-                });
+                }
 
                 // 检查胜负
                 const alliesAlive = allies.some(u => u.alive);
