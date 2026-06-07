@@ -195,6 +195,8 @@ window.CanvasBattle = (function() {
             this.knockbackTimer = 0;
             this.lungeX = 0;           // 近战前冲
             this.lungeTimer = 0;
+            this.atkFlashTimer = 0;     // 攻击前摇闪光
+            this.regenAccumulator = 0;  // 回血累积计时器
             this.deathTimer = 0;       // 死亡淡出
             this.scale = 1;            // 用于呼吸/动画
         }
@@ -224,6 +226,19 @@ window.CanvasBattle = (function() {
         inRangeOf(target) {
             if (!target || this.range === 'heal') return true;
             return Math.abs(this.x - target.x) <= this.getAttackRange() + 8;
+        }
+
+        // 获取弹丸视觉风格
+        getProjectileStyle() {
+            if (this.range === 'heal') return { style: 'heal', color: '#ffdd44', glow: '#ffdd00' };
+            if (this.range === 'mid' && this.poisonRange > 0) return { style: 'poison', color: '#44cc22', glow: '#44ff44' };
+            if (this.poisonDmg > 0) return { style: 'poison', color: '#66dd44', glow: '#66ff66' };
+            if (this.slowPct > 0) return { style: 'ice', color: '#88ccff', glow: '#88ddff' };
+            if (this.splash > 0) return { style: 'fire', color: '#ff6600', glow: '#ff4400' };
+            if (this.lifesteal > 0) return { style: 'fire', color: '#ff4444', glow: '#ff0000' };
+            if (this.attack >= 60) return { style: 'blunt', color: '#ffcc88', glow: '#ffaa44' }; // 高攻击=钝器感
+            if (this.name === '龙帝' || this.name === '凤凰神') return { style: 'fire', color: '#ff8800', glow: '#ff4400' };
+            return { style: 'default', color: '#ffcc00', glow: '#ff8800' };
         }
 
         // 更新移动
@@ -286,13 +301,21 @@ window.CanvasBattle = (function() {
                 return;
             }
 
-            // 回血
-            if (this.regen > 0) {
-                this.health = Math.min(this.maxHealth, this.health + this.regen * delta);
+            // 回血 — 每秒离散触发
+            if (this.regen > 0 && this.health < this.maxHealth) {
+                this.regenAccumulator += delta;
+                if (this.regenAccumulator >= 1.0) {
+                    const ticks = Math.floor(this.regenAccumulator);
+                    this.health = Math.min(this.maxHealth, this.health + this.regen * ticks);
+                    this.regenAccumulator -= ticks;
+                    this._regenTick = true;  // 标记触发，供主循环显示数字
+                }
             }
 
             // 受击闪烁衰减
             if (this.flashTimer > 0) this.flashTimer -= delta;
+            // 攻击闪光衰减
+            if (this.atkFlashTimer > 0) this.atkFlashTimer -= delta;
 
             // 击退衰减
             if (this.knockbackTimer > 0) {
@@ -534,7 +557,7 @@ window.CanvasBattle = (function() {
             ctx.translate(drawX, drawY);
             ctx.scale(this.scale, this.scale);
 
-            // 受击闪烁 — 将 hex 颜色转换为带 alpha 的 rgba
+            // 受击闪烁
             if (this.flashTimer > 0) {
                 let r = 255, g = 255, b = 255;
                 const hex = this.flashColor;
@@ -546,6 +569,14 @@ window.CanvasBattle = (function() {
                 ctx.fillStyle = `rgba(${r},${g},${b},0.6)`;
                 ctx.beginPath();
                 ctx.arc(0, 0, 32, 0, Math.PI * 2);
+                ctx.fill();
+            }
+
+            // 攻击前摇闪光 — 白色短暂亮起
+            if (this.atkFlashTimer > 0) {
+                ctx.fillStyle = 'rgba(255,255,255,0.5)';
+                ctx.beginPath();
+                ctx.arc(0, 0, 28, 0, Math.PI * 2);
                 ctx.fill();
             }
 
@@ -600,6 +631,47 @@ window.CanvasBattle = (function() {
             // 血条（在怪物上方，不受scale影响）
             if (this.alive || this.deathTimer < 0.4) {
                 this.renderHealthBar(ctx, drawX, drawY - 42);
+            }
+
+            // 状态效果叠加层
+            // 减速 — 冰蓝色描边
+            if (this.slowTimer > 0) {
+                ctx.save();
+                ctx.globalAlpha = 0.6;
+                ctx.strokeStyle = '#88ddff';
+                ctx.lineWidth = 3;
+                ctx.beginPath();
+                ctx.arc(drawX, drawY, 28, 0, Math.PI * 2);
+                ctx.stroke();
+                ctx.restore();
+            }
+            // 中毒 — 绿色毒泡
+            if (this.poisonStacks && this.poisonStacks.length > 0) {
+                ctx.save();
+                ctx.globalAlpha = 0.4;
+                ctx.fillStyle = '#44ff44';
+                for (let pi = 0; pi < 3; pi++) {
+                    const bx = drawX + Math.sin(performance.now() * 0.003 + pi * 2.1) * 14;
+                    const by = drawY - 32 + Math.cos(performance.now() * 0.004 + pi * 1.7) * 8;
+                    ctx.beginPath();
+                    ctx.arc(bx, by, 2.5, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+                ctx.restore();
+            }
+            // 狂战士 — 红色蒸汽
+            if (this.berserk > 0 && this.alive && this.health / this.maxHealth < 0.7) {
+                ctx.save();
+                ctx.globalAlpha = 0.3;
+                ctx.fillStyle = '#ff4444';
+                for (let bi = 0; bi < 4; bi++) {
+                    const bx = drawX + Math.sin(performance.now() * 0.005 + bi * 1.5) * 18;
+                    const by = drawY - 28 - Math.abs(Math.cos(performance.now() * 0.006 + bi)) * 15;
+                    ctx.beginPath();
+                    ctx.arc(bx, by, 2 + Math.random(), 0, Math.PI * 2);
+                    ctx.fill();
+                }
+                ctx.restore();
             }
 
             // 名字（品质色）
@@ -724,6 +796,9 @@ window.CanvasBattle = (function() {
             this.alive = true;
             this.hitTargets = [];
             this.attacker = null; // 保存发射者引用，用于吸血回血
+            this.style = 'default'; // mech/fire/poison/ice/heal/blunt
+            this.pColor = '#ffcc00'; // 主色
+            this.pGlow = '#ff8800';  // 光晕色
         }
 
         update(delta) {
@@ -732,22 +807,191 @@ window.CanvasBattle = (function() {
         }
 
         render(ctx) {
-            // 小型弹丸
-            ctx.fillStyle = this.isCrit ? '#ff4444' : '#ffcc00';
-            ctx.shadowColor = this.isCrit ? '#ff0000' : '#ff8800';
-            ctx.shadowBlur = 6;
+            const r = this.isCrit ? 4.5 : 3;
+            // 拖尾
+            ctx.save();
+            if (this.style === 'fire') {
+                // 火球：多层不规则拖尾
+                for (let i = 0; i < 3; i++) {
+                    const ta = 0.3 - i * 0.08;
+                    ctx.fillStyle = `rgba(255,${80 + i * 60},0,${ta})`;
+                    ctx.beginPath();
+                    ctx.arc(this.x - this.vx * (0.015 + i * 0.01), this.y - this.vy * (0.015 + i * 0.01), r + i * 2, 0, Math.PI * 2);
+                    ctx.fill();
+                }
+                ctx.fillStyle = this.isCrit ? '#ff2200' : '#ff6600';
+                ctx.shadowColor = '#ff4400';
+                ctx.shadowBlur = 10;
+            } else if (this.style === 'poison') {
+                ctx.fillStyle = 'rgba(100,255,100,0.3)';
+                ctx.beginPath();
+                ctx.arc(this.x - this.vx * 0.02, this.y - this.vy * 0.02, r + 3, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.fillStyle = this.isCrit ? '#88ff44' : '#44cc22';
+                ctx.shadowColor = '#44ff44';
+                ctx.shadowBlur = 8;
+            } else if (this.style === 'ice') {
+                ctx.fillStyle = 'rgba(150,220,255,0.4)';
+                ctx.beginPath();
+                ctx.arc(this.x - this.vx * 0.015, this.y - this.vy * 0.015, r + 2, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.fillStyle = this.isCrit ? '#ccffff' : '#88ccff';
+                ctx.shadowColor = '#88ddff';
+                ctx.shadowBlur = 8;
+            } else if (this.style === 'heal') {
+                ctx.fillStyle = 'rgba(255,215,0,0.25)';
+                ctx.beginPath();
+                ctx.arc(this.x - this.vx * 0.01, this.y - this.vy * 0.01, r + 4, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.fillStyle = '#ffdd44';
+                ctx.shadowColor = '#ffdd00';
+                ctx.shadowBlur = 12;
+            } else if (this.style === 'blunt') {
+                // 冲击波短脉冲
+                ctx.strokeStyle = 'rgba(255,255,255,0.6)';
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.moveTo(this.x, this.y);
+                ctx.lineTo(this.x - this.vx * 0.03, this.y - this.vy * 0.03);
+                ctx.stroke();
+                ctx.fillStyle = '#ffcc88';
+                ctx.shadowColor = '#ffaa44';
+                ctx.shadowBlur = 6;
+            } else {
+                // 默认金色齿轮弹丸
+                ctx.fillStyle = this.isCrit ? '#ff4444' : this.pColor;
+                ctx.shadowColor = this.isCrit ? '#ff0000' : this.pGlow;
+                ctx.shadowBlur = 6;
+            }
             ctx.beginPath();
-            ctx.arc(this.x, this.y, 3, 0, Math.PI * 2);
+            ctx.arc(this.x, this.y, r, 0, Math.PI * 2);
             ctx.fill();
             ctx.shadowBlur = 0;
 
-            // 拖尾
+            // 拖尾线
             ctx.strokeStyle = this.isCrit ? 'rgba(255,100,100,0.5)' : 'rgba(255,200,100,0.4)';
-            ctx.lineWidth = 2;
+            ctx.lineWidth = this.isCrit ? 2.5 : 1.5;
             ctx.beginPath();
             ctx.moveTo(this.x, this.y);
-            ctx.lineTo(this.x - this.vx * 0.02, this.y - this.vy * 0.02);
+            ctx.lineTo(this.x - this.vx * 0.025, this.y - this.vy * 0.025);
             ctx.stroke();
+            ctx.restore();
+        }
+    }
+
+    // ========== 命中粒子 ==========
+    class HitParticle {
+        constructor(x, y, count, color, spread) {
+            this.particles = [];
+            for (let i = 0; i < count; i++) {
+                const angle = Math.random() * Math.PI * 2;
+                const speed = 60 + Math.random() * (spread || 80);
+                this.particles.push({
+                    x: x, y: y,
+                    vx: Math.cos(angle) * speed,
+                    vy: Math.sin(angle) * speed - 30,
+                    life: 0.25 + Math.random() * 0.35,
+                    maxLife: 0.6,
+                    size: 1.5 + Math.random() * 3
+                });
+            }
+            this.color = color;
+            this.life = 0.6;
+        }
+        update(delta) {
+            this.life -= delta;
+            this.particles.forEach(p => {
+                p.life -= delta;
+                p.x += p.vx * delta;
+                p.y += p.vy * delta;
+                p.vy += 120 * delta; // gravity
+            });
+        }
+        render(ctx) {
+            const alpha = Math.max(0, this.life / 0.6);
+            this.particles.forEach(p => {
+                if (p.life <= 0) return;
+                const pa = Math.min(alpha, p.life / p.maxLife);
+                ctx.fillStyle = this.color.replace('1)', pa + ')').replace('rgb', 'rgba');
+                ctx.beginPath();
+                ctx.arc(p.x, p.y, p.size * pa, 0, Math.PI * 2);
+                ctx.fill();
+            });
+        }
+    }
+
+    // ========== 近战斩击弧线 ==========
+    class MeleeSlash {
+        constructor(fromX, fromY, toX, toY, color, isCrit) {
+            this.fromX = fromX;
+            this.fromY = fromY;
+            this.toX = toX;
+            this.toY = toY;
+            this.color = color || '#ffffff';
+            this.isCrit = isCrit || false;
+            this.life = 0.25;
+            this.maxLife = 0.25;
+        }
+        update(delta) {
+            this.life -= delta;
+        }
+        render(ctx) {
+            if (this.life <= 0) return;
+            const alpha = this.life / this.maxLife;
+            const progress = 1 - alpha;
+            // 弧线从攻击者划向目标
+            const mx = (this.fromX + this.toX) / 2;
+            const my = (this.fromY + this.toY) / 2 - 30 * (1 - progress);
+            ctx.save();
+            ctx.globalAlpha = alpha;
+            ctx.strokeStyle = this.color;
+            ctx.lineWidth = this.isCrit ? 4 : 2.5;
+            ctx.shadowColor = this.color;
+            ctx.shadowBlur = this.isCrit ? 12 : 6;
+            ctx.beginPath();
+            ctx.moveTo(this.fromX, this.fromY);
+            ctx.quadraticCurveTo(mx, my, this.toX, this.toY);
+            ctx.stroke();
+            // 第二条更细的亮线
+            ctx.strokeStyle = '#ffffff';
+            ctx.lineWidth = 1;
+            ctx.globalAlpha = alpha * 0.7;
+            ctx.stroke();
+            ctx.shadowBlur = 0;
+            ctx.restore();
+        }
+    }
+
+    // ========== 冲击波圆环（溅射用） ==========
+    class ShockwaveRing {
+        constructor(x, y, color, maxRadius) {
+            this.x = x;
+            this.y = y;
+            this.color = color || '#ff8800';
+            this.maxRadius = maxRadius || 50;
+            this.radius = 5;
+            this.life = 0.4;
+            this.maxLife = 0.4;
+        }
+        update(delta) {
+            this.life -= delta;
+            const progress = 1 - (this.life / this.maxLife);
+            this.radius = 5 + (this.maxRadius - 5) * progress;
+        }
+        render(ctx) {
+            if (this.life <= 0) return;
+            const alpha = this.life / this.maxLife;
+            ctx.save();
+            ctx.globalAlpha = alpha;
+            ctx.strokeStyle = this.color;
+            ctx.lineWidth = 3 * alpha;
+            ctx.shadowColor = this.color;
+            ctx.shadowBlur = 8;
+            ctx.beginPath();
+            ctx.arc(this.x, this.y, this.radius, 0, Math.PI * 2);
+            ctx.stroke();
+            ctx.shadowBlur = 0;
+            ctx.restore();
         }
     }
 
@@ -867,6 +1111,9 @@ window.CanvasBattle = (function() {
         const damageNumbers = [];
         const projectiles = [];
         const battleEvents = [];
+        const hitParticles = [];     // 命中粒子
+        const meleeSlashes = [];     // 近战斩击弧线
+        const shockwaves = [];       // 冲击波圆环
 
         // ===== 战斗状态机 =====
         // countdown → fighting → victory | defeat → done
@@ -950,6 +1197,12 @@ window.CanvasBattle = (function() {
                     });
                 } else if (r.type === 'melee') {
                     const at = r.attacker;
+                    // 攻击前摇闪光
+                    at.atkFlashTimer = 0.08;
+                    // 近战斩击弧线
+                    meleeSlashes.push(new MeleeSlash(at.x, at.y - 10, r.target.x, r.target.y - 10, '#ffffff', r.isCrit));
+                    // 命中粒子
+                    hitParticles.push(new HitParticle(r.target.x, r.target.y - 10, r.isCrit ? 6 : 3, r.isCrit ? 'rgb(255,100,50)' : 'rgb(255,200,150)', r.isCrit ? 100 : 60));
                     // 吸血
                     if (at.lifesteal > 0) {
                         const heal = Math.floor(r.damage * at.lifesteal);
@@ -982,6 +1235,7 @@ window.CanvasBattle = (function() {
                     r.target.applyKnockback(at.x, getKnockbackDist(at.traits, at.range, at.knockback), canvas.width);
                     // 溅射
                     if (at.splash > 0) {
+                        shockwaves.push(new ShockwaveRing(r.target.x, r.target.y - 10, '#ff8800', at.splash));
                         const opposite = at.isEnemy ? allies : enemiesList;
                         opposite.forEach(u => {
                             if (!u.alive || u === r.target) return;
@@ -994,7 +1248,7 @@ window.CanvasBattle = (function() {
                         });
                     }
                 } else if (r.type === 'projectile') {
-                    // 远程：生成弹丸（可用r.fromX/fromY自定义起点实现连发拖尾）
+                    // 远程：生成弹丸
                     const attacker = r.attacker;
                     const p = new Projectile(
                         r.fromX || attacker.x,
@@ -1007,8 +1261,12 @@ window.CanvasBattle = (function() {
                     p.lifesteal = attacker.lifesteal;
                     p.poisonDmg = attacker.poisonDmg; p.poisonDur = attacker.poisonDur;
                     p.slowPct = attacker.slowPct; p.slowDur = attacker.slowDur;
-                    p.attacker = attacker; // 保存发射者引用，用于吸血
+                    p.attacker = attacker;
+                    const ps = attacker.getProjectileStyle();
+                    p.style = ps.style; p.pColor = ps.color; p.pGlow = ps.glow;
                     projectiles.push(p);
+                    // 攻击前摇闪光
+                    attacker.atkFlashTimer = 0.08;
                 }
             });
         }
@@ -1050,10 +1308,13 @@ window.CanvasBattle = (function() {
                             battleEvents.push(new BattleEvent(t.name + ' 阵亡', '#ff6666', 'DEATH'));
                         }
                         t.flashTimer = 0.1;
+                        // 命中粒子
+                        hitParticles.push(new HitParticle(t.x, t.y - 10, p.isCrit ? 5 : 2, p.isCrit ? 'rgb(255,100,50)' : 'rgb(255,200,150)', p.isCrit ? 90 : 50));
                         t.applyKnockback(p.attacker.x, p.knockbackDist, canvas.width);
                         if (p.isCrit) { shakeAmount = Math.max(shakeAmount, 4); shakeDuration = 0.3; }
                         // 溅射
                         if (p.splash > 0) {
+                            shockwaves.push(new ShockwaveRing(t.x, t.y - 10, '#ff6600', p.splash));
                             const opp = p.vx > 0 ? enemiesList : allies;
                             opp.forEach(u => {
                                 if (!u.alive || u === t) return;
@@ -1238,6 +1499,11 @@ window.CanvasBattle = (function() {
                         }
                         unit._poisonTick = 0;
                     }
+                    // 回血数字（每秒触发时显示）
+                    if (unit._regenTick) {
+                        damageNumbers.push(new DamageNumber(unit.x, unit.y - 30, '+' + unit.regen, '#4caf50', false));
+                        unit._regenTick = false;
+                    }
                 });
 
                 // 攻击判定
@@ -1278,9 +1544,32 @@ window.CanvasBattle = (function() {
                     if (poisonLines[i].life <= 0) poisonLines.splice(i, 1);
                 }
 
+                // 命中粒子更新
+                for (let i = hitParticles.length - 1; i >= 0; i--) {
+                    hitParticles[i].update(delta);
+                    if (hitParticles[i].life <= 0) hitParticles.splice(i, 1);
+                }
+
+                // 近战斩击更新
+                for (let i = meleeSlashes.length - 1; i >= 0; i--) {
+                    meleeSlashes[i].update(delta);
+                    if (meleeSlashes[i].life <= 0) meleeSlashes.splice(i, 1);
+                }
+
+                // 冲击波更新
+                for (let i = shockwaves.length - 1; i >= 0; i--) {
+                    shockwaves[i].update(delta);
+                    if (shockwaves[i].life <= 0) shockwaves.splice(i, 1);
+                }
+
                 // 自爆检查
                 allUnits.forEach(u => {
                     if (!u.alive && u.explodeDmg > 0 && u.deathTimer < 0.02) {
+                        // 爆炸视觉特效
+                        hitParticles.push(new HitParticle(u.x, u.y - 10, 12, 'rgb(255,80,20)', 150));
+                        shockwaves.push(new ShockwaveRing(u.x, u.y - 10, '#ff4400', u.explodeRange));
+                        shakeAmount = Math.max(shakeAmount, 8);
+                        shakeDuration = 0.4;
                         const opp = u.isEnemy ? allies : enemiesList;
                         opp.forEach(t => {
                             if (!t.alive) return;
@@ -1323,6 +1612,15 @@ window.CanvasBattle = (function() {
 
             // 渲染弹丸
             projectiles.forEach(p => p.render(ctx));
+
+            // 渲染近战斩击弧线
+            meleeSlashes.forEach(s => s.render(ctx));
+
+            // 渲染命中粒子
+            hitParticles.forEach(hp => hp.render(ctx));
+
+            // 渲染冲击波
+            shockwaves.forEach(sw => sw.render(ctx));
 
             // 渲染毒液线段
             poisonLines.forEach(pl => {
